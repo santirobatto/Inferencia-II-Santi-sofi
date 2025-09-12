@@ -1,0 +1,258 @@
+---
+title: "Ejercicios capítulo 4"
+format: pdf
+editor: visual
+author: Sofía Terra y Santiago Robatto
+---
+
+## Ejercicio 4.4: Choice of Prior
+
+```{r, message=FALSE, warning=FALSE}
+#librerias que se utilizan
+library(tidyverse)
+library(bayesrules)
+library(janitor)
+library(patchwork)
+```
+
+Previo a graficar, si observamos los parámetros elegidos para graficar el modelo (Beta) de cada compañero de trabajo podemos deducir que piensan que es mas probable, basándonos solamente en la relacion entre $\alpha$ y $\beta$ tal como vimos en clase.
+
+Por ejemplo, en el caso de Taylor, vemos que para él probablemente la heladeria este abierta, dado que selecciono parametros con una relacion en la que $\alpha > \beta$. Esta relación generará una cola a la derecha, es decir que la probabilidad se vuelca hacia 1. Podríamos también deducir de la misma manera esperanza y moda, pero utilizaremos más adelante la función "summarize_beta"
+
+Analogamente, razonando de la misma manera sabremos que tanto para Ciara, Fernando y Kimya es mas probable que la heladeria esté cerrada porque todos eligieron parámetros con una relación en la que ($\alpha < \beta$).
+
+\newpage
+
+**Procedemos a graficar las prioris:**
+
+```{r, warning=FALSE, echo=FALSE}
+library(patchwork)
+g1<- plot_beta(1,2, mean=FALSE)+labs(title="Kimya")+
+     geom_vline(aes(xintercept = 1/3), colour = "red",linewidth = 1)
+
+g2<- plot_beta(0.5,1, mean=FALSE)+labs(title="Fernando")+
+     geom_vline(aes(xintercept = 1/3), colour = "red",linewidth = 1)
+
+g3<- plot_beta(3,10, mean=FALSE)+labs(title="Ciara")+
+     geom_vline(aes(xintercept = 0.23), colour = "red",linewidth = 1)
+
+g4<- plot_beta(2,0.1, mean=FALSE)+labs(title="Taylor")+
+     geom_vline(aes(xintercept = 0.954), colour = "red",linewidth = 1)
+
+g1+g2+g3+g4
+
+#OBS: los datos de la media fueron extraídos de la tabla summarize de más abajo.
+#Si simplemente hacemos mean=TRUE, nos grafica la media pero en negro.
+#Con este otro método queda más claro cuál es la media, se destaca más
+```
+
+*Observación: La línea roja representa la media.*
+
+Se decidió no incluir los modos dado que se "rompían" los gráficos. Entendemos que esto ocurre dado que nuestra definición vista en clase para el modo aplica solo cuando $\alpha$ y $\beta$ son mayores a 1, lo que no se verifica en algunos casos.
+
+Al graficar confirmamos nuestra suposicion inical. Podemos observar que en graficas de Ciara, Kimya y Taylor los valores cercanos a cero tienen mayor probabilidad que los valores cercanos a 1. Es decir que para ellos la heladeria es mas probable que este cerrada. Por otra parte Taylor acumula probabilidad.
+
+Podemos ver a simple vista que para Fernando y Kimya la probabilidad es decreciente de manera constante, aunque para Kimya es lineal y para Fernando no. La curva de Kimya es lineal y otorga probablidades a todos los valores de 0 a 1, de manera decreciente. Por otro lado la curva de Fernando cae muy rapidamente, está sumamente concentrada a la izquierda.
+
+En el caso de Ciara observamos una curva unimodal, con un claro pico alrededor de 0,2. Está bien definida y es poco dispersa. La curva de Taylor indica muchísima seguridad a que esté abierta, es claramente sesgada de manera oprimista. Esto se debe a que $\alpha$ es 20 veces mas grande que $\beta$. Cuando la diferencia entre parametros es tan grande la varianza tiende a reducirse.
+
+**Medidas de resumen**
+
+```{r, echo=FALSE}
+resumenbeta<-data.frame() #Dataframe vacío para cargar los datos de cada uno con su nombre.
+resumenbeta<-rbind(
+  cbind(params="Kimya", summarize_beta(1,2)),
+  cbind(params="Fernando",summarize_beta(0.5,1)),
+  cbind(params="Ciara",summarize_beta(3,10)),
+  cbind(params="Taylor",summarize_beta(2,0.1))
+)
+resumenbeta[, -1] <- round(resumenbeta[, -1], 2)
+resumenbeta
+
+```
+
+Podemos observar que para los 3 primeros compañeros, la esperanza de que esté abierta la hveladería es menor a 0.5. En cambio para Taylor es 0,95.
+
+Si bien anteriormente mencionamos que no se puedecalcular el modo para parámetros menores a 1, en el caos de Taylor el modo da coherente con la distrbución. En cambio en el caso de Fernando se obtiene un modo que llama sumamente la atención, dado que es opuesto a la media y claramente se contradice con la forma de la función de distribución.
+
+Por otra parte, la incertidumbre de Ciara es la menor, mientras que la de Kimya y Fernando son relativamente altas. Si vinculamos esto con la forma del gráfico, podemos pensar que una forma de campana puede brindar menor desvío que una recta o curva con cola, que otorgan más probabilidades en todo el intervalo.
+
+## Ejercicio 4.5 y 4.6: Simulating and Identifying the posterior
+
+Primero procederemos a encontrar el posterior teórica para cada compañero de Chad, para luego poder compararla con la simulación que realizaremos. Modelaremos el posterior teórico dada la nueva información (3 de los ultimos 7 dias estuvo abierta la heladeria, es decir que la verosimilitud distribuye binomial con n=7 y 3 éxitos). Para ello podemos usar la funcion **plot_beta_binomial**, la cual produce el posterior y realiza una comparación entre el prior, la verosimilitud y la posterior, dados un prior beta con sus respectivos parametros ($\alpha$ y $\beta$ ) y una verosimilitud binomial (y= numero de exitos y n = tamano de la muestra ).
+
+```{r, warning=FALSE, echo=FALSE}
+p1<- plot_beta_binomial(1,2,3,7)+labs(title="Kimya")
+p2<- plot_beta_binomial(0.5,1,3,7)+labs(title="Fernando")
+p3<- plot_beta_binomial(3,10,3,7)+labs(title="Ciara")
+p4<- plot_beta_binomial(2,0.1,3,7)+labs(title="Taylor")
+
+p1
+p2
+p3
+p4
+```
+
+\newpage
+
+Tal como debe ocurrir cuando trabajamos con distribuciones a posteriori, esta se encuentra entre la verosimilitud y el prior.
+
+A su vez, también sabemos que cuanto mayor sea el *n* el ajuste se aproximará más a la verosimilitud. Realizamos la demostracion en clase que, cuando n tiende a infinito, la esperanza del posteior tiende a la esperanza de la verosimilitud.
+
+En este caso estamos trabajando con un tamaño muestral relativamente chico, por lo que no se espera un ajuste muy cercano en ninguno de los casos.
+
+A su vez, tambien sabemos que cuanto mas concentrada sea la distribución a priori, más influencia tendrá en el posterior y viceversa, cuanto más dilatada sea la distribución, menos información aportará, siendo el extremo una beta (1,1) que no aporta nada de información. En tal caso el posterior será exactanente igual a la verosimilitud. Esto ocurre dado que la beta (1,1) es constante y asigna igual probabilidad a todos los valores del recorrido. Si pensamos en el significado que le damos al prior, esto es sumamente coherente: si yo estoy seguro de dónde se encuentra el verdadero valor del parametro $\pi$, lo modelaré de tal modo que su distribución este concentrada en torno a dicho valor. En cambio, si tengo mucha incertidumbre, utilizaré un modelo menos concentrado, es decir con mayor varianza. En función de esto determinamos cuánta relevancia tomará el prior a la hora de modelar el posterior.
+
+Volviendo al ejercicio, esto se ve claramente reflejado al comparar las distribuciones de Clara y Fernando. El modelo del posterior de Fernando, quien vimos que acepta un desvio relativamente alto en su prior, se asemeja mucho a la función de verosimilitud. En cambio en el caso de Clara, quien concentra probabilidad entorno a 0,2 con un desvio considerablemente inferior al que acepta Fernando, vemos que el posterior es mas cercano al prior que a la verosimilitud. Si la verosimilitud hubiese sido n=100 e y=70, probablemente tuviese mayor relevancia en el caso de Clara.
+
+Para hallar las medidas de resumen utilizaremos la función **summarize_beta_binomial**.
+
+**Esperanzas del posterior teorico**
+
+```{r, echo=FALSE}
+
+kimya <- summarize_beta_binomial(1, 2, 3, 7) %>%
+  filter(model == "posterior") %>%
+  select(mean) %>%
+  mutate(nombre = "Kimya")
+
+fernando <- summarize_beta_binomial(0.5, 1, 3, 7) %>%
+  filter(model == "posterior") %>%
+  select(mean) %>%
+  mutate(nombre = "Fernando")
+
+ciara <- summarize_beta_binomial(3, 10, 3, 7) %>%
+  filter(model == "posterior") %>%
+  select(mean) %>%
+  mutate(nombre = "Ciara")
+
+taylor <- summarize_beta_binomial(2, 0.1, 3, 7) %>%
+  filter(model == "posterior") %>%
+  select(mean) %>%
+  mutate(nombre = "Taylor")
+
+df <- bind_rows(kimya, fernando, ciara, taylor)
+df
+```
+
+A pesar de haber partido de distintos prioris, la Esperanza a posterior de Kimya y la de Fernando son sumamente parecidas. Ambos prioris eran los más dispersos, y por ende de menor peso, entonces podemos pensar que estos son los que menor influencia tuvieron sobre la media de la verosimilitud.
+
+Por otra parte, la esperanza de Taylor pasa de ser de 0.95 a 0.54, viéndose así sumamente alterado su prior. Esto ocurre dado que el prior estuvo muy alejado de la verosimilitud (nueva evidencia).
+
+A pesar de haber partido de prioris radicalmente disintos, todas las esperanzas se encuentran en el intervalo \[0.3; 0.54\]. Con esto se ve reflejada la utilidad de la regla de Bayes, con muy poca nueva evidencia reducimos una amplitud de prioris a un intervalo menor.
+
+## Simulación en el ejercicio 4.5
+
+**Simulación de Kimya**
+
+Realizamos una simulación de los valores de $\pi$ y luego los utilizamos en la binomial. A continuación graficamos la cantidad de éxitos y destacamos los valores que nos quedaron cuando y=3.
+
+```{r, echo=FALSE}
+set.seed(123) #Seteamos la semilla
+
+#Simulamos una muestra de 10000 
+kimya_sim <-data.frame(pi=rbeta(10000, 1,2)) %>%
+mutate(y=rbinom(10000, size=7, prob=pi)) #binomial
+
+#Graficamos la cantidad de exitos 
+#y=3
+ggplot(kimya_sim, aes(x = pi, y = y)) + 
+geom_point(aes(color = (y == 3)), size = 0.1)
+```
+
+Ahora graficamos la función de densidad correspondiente a la posteriori. Si bien en el ejercicio pide hacer un histograma, pensamos que sería más oportuno graficar la densidad para luego compararla con el modelo teórico de la Beta. Es un pequeño detalle que consideramos importante aclarar.
+
+```{r, echo=FALSE}
+kimya_posterior<- kimya_sim %>% 
+filter(y == 3) #filtramos para y=3
+
+# graficamos los valores restantes
+kimya_pos<-ggplot(kimya_posterior, aes(x = pi)) + 
+ geom_density() +labs(title="Kimya Posteriori Simulada")#OBS: utilizamos la función de densidad en vez de un histograma porque lo encontramos más adecuado
+
+kimya_pos
+```
+
+De esta manera se observa la densidad simulada del posterior para los valores de $\pi$ cuando y=3.
+
+### Resumen de la media y el desvío típico para el posterior de Kimya
+
+```{r, echo=FALSE}
+kimya_posterior %>% 
+  summarize(mean(pi), sd(pi)) #se muestra el resumen de la media y la desviacion simulada
+  
+```
+
+Podemos usar esta simulación para compararla con la distribución teórica. Para ello usaremos el modelo beta binomial y replicaremos la deducción que hicimos de su posterior, que distribuye Beta (4 ($\alpha$ = 1 + y=3) , 6 ($\beta$=2+n=7-y=3))
+
+```{r, echo=FALSE}
+
+# Parámetros
+a <- 4
+b <- 6
+
+# Secuencia en [0,1]
+x <- seq(0, 1, length.out = 500)
+
+# Dataframe con densidad
+df <- data.frame(x = x, y = dbeta(x, a, b))
+
+# Gráfico
+beta_teor<-ggplot(df, aes(x = x, y = y)) +
+  geom_line(color = "blue", linewidth = 1) +
+  labs(title = "Beta(4,6) teórica Kimya",
+       x = expression(pi),
+       y = "Densidad") +
+  theme_minimal()
+
+kimya_pos<-ggplot(kimya_posterior, aes(x = pi)) + 
+ geom_density() + labs(title= "Beta(4,6) simulada Kimya")
+
+
+beta_teor+kimya_pos
+```
+
+Se observa que son bastante similares, aunque la simulación presenta algunos detalles, es muy parecida a la teórica en líneas generales.
+
+Finalmente, hacemos la simulación para Fernando, Ciara y Taylor (se utiliza el mismo método que antes).
+
+\newpage
+
+**Simulación de posteriori para Fernando, Ciara y Taylor:**
+
+```{r, echo=FALSE}
+set.seed(123) 
+
+fernando_sim <-data.frame(pi=rbeta(10000, 0.5,1)) %>%
+mutate(y=rbinom(10000, size=7, prob=pi))
+
+ciara_sim <-data.frame(pi=rbeta(10000, 3,10)) %>%
+mutate(y=rbinom(10000, size=7, prob=pi))
+
+taylor_sim <-data.frame(pi=rbeta(10000, 2,0.1)) %>%
+mutate(y=rbinom(10000, size=7, prob=pi))
+```
+
+```{r, echo=FALSE}
+fernando_posterior<- fernando_sim %>% 
+filter(y == 3) 
+
+ciara_posterior<- ciara_sim %>% 
+filter(y == 3) 
+
+taylor_posterior<- taylor_sim %>% 
+filter(y == 3) 
+```
+
+```{r, echo=FALSE}
+fernando_pos<-ggplot(fernando_posterior, aes(x = pi)) + 
+ geom_density() +labs(title="Fernando Posteriori Simulada")
+
+ciara_pos<-ggplot(ciara_posterior, aes(x = pi)) + 
+ geom_density() +labs(title="Ciara Posteriori Simulada")
+
+taylor_pos<-ggplot(taylor_posterior, aes(x = pi)) + 
+ geom_density() +labs(title="Taylor Posteriori Simulada")
+
+kimya_pos+fernando_pos+ciara_pos+taylor_pos
+```
