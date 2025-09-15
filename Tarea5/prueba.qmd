@@ -1,27 +1,248 @@
 ---
-title: "prueba"
-author: "alo"
-format: html
+title: "Ejercicios 4 y 5"
+author: "Sofi Terra, Santi R"
+format: pdf
 editor: visual
 ---
 
-## Quarto
+## Ejercicio 4.19
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+```{r, echo= FALSE, warning=FALSE, message=FALSE}
+#Carga de los paquetes 
+library(bayesrules)
+library(tidyverse)
+library(janitor)
 
-## Running Code
+#Carga del dataset
+data(bechdel, package = "bayesrules")
 
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
-
-```{r}
-1 + 1
+#Filtramos 1980 
+bechdel %>% 
+  filter(year == 1980) %>% 
+  tabyl(binary) %>% 
+  adorn_totals("row")
 ```
 
-You can add options to executable code like this
+Generamos el grafico de prior, verosimilitud y posterior con plot beta binomial
 
-```{r}
-#| echo: false
-2 * 2
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+plot_beta_binomial(alpha = 1, beta = 1, y = 4, n = 14)
+
+
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+Se observa que la verosimilitud es igual al posterior. Esto ocurre porque el prior es una beta (1,1) que es uniforme en el recorrido. Inter pretando esto de una manera bayesiana, signfiica que no aporta nada de informacion. Se utiliza para repersentar neutralidad absoltua. Siempre que partimos de una beta con tales parametros, la verosimilud sera igual al posterior.
+
+Para el **Calculo teorico de la esperanza y modo** utilizaremos el calculo del posterior del modelo beta binomial, que sabemos que distribuye Beta ($\alpha$+y,$\beta$+n-y).
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+summarize_beta_binomial(alpha = 1, beta = 1, y = 4, n = 14)
+```
+
+### Parte dos: Calculo para 1990
+
+Busqueda de la informacion para 1990 (Verosimilitud)
+
+```{r}
+bechdel %>% 
+  filter(year == 1990) %>% 
+  tabyl(binary) %>% 
+  adorn_totals("row")
+```
+
+Partimos del posterior anterior que ya sabemos como distribuye gracias a la formula del posterior en el modelo beta binomial y cargamos la verosimilitud buscada en el paso anterior. Dicho "posterior" se convirtio en nuestro nuevo prior y se agrega una nueva verosimilitud.
+
+```{r}
+plot_beta_binomial(alpha = 5, beta = 11, y = 6, n = 15)
+```
+
+**Calculo de la esperanza teorica**
+
+```{r}
+summarize_beta_binomial(5, 11, 6, 15)
+```
+
+### Parte 3: Ano 2000
+
+Nuestro nuevo prior distribuira Beta(11, 20)
+
+```{r}
+bechdel %>% 
+  filter(year == 2000) %>% 
+  tabyl(binary) %>% 
+  adorn_totals("row")
+```
+
+```{r}
+plot_beta_binomial(alpha = 11, beta = 20 , y = 29, n = 63)
+summarize_beta_binomial(11, 20, 29, 63)
+
+```
+
+### Parte 4: Calculo de Jenna
+
+```{r}
+bechdel %>% 
+  filter(year %in% c(1980, 1990, 2000)) %>% 
+  tabyl(binary) %>% 
+  adorn_totals("row")
+```
+
+```{r}
+plot_beta_binomial(alpha = 1, beta = 1 , y = 39, n = 92)
+summarize_beta_binomial(1, 1, 39, 92)
+
+```
+
+Se observa que Jenna llega a la misma posterior que John; probando que no importa el orden en el que mires la informacion, se llegara a los mismos resultados. John realiza su analisis en tres dias (pasos), mientras que Jenna solo en uno. Pero al partir del mismo prior (Beta(1,1)) y utilizar las mismas muestras, llegan a los mismos posteriors.
+
+## Ejercicio 5.7: Womens world cup
+
+Utilizaremos plot_gamma (1, 0.25) dado que es el prior dado.
+
+```{r}
+
+plot_gamma(1, 0.25)
+
+```
+
+Se observa que $\lambda$ es decreciente y parte desde cero, con asimetria a la derecha. Es sumamente coherente con el contexto de que $\lambda$ representa la cantidad de goles promedio, seria extrano que 20 tenga probabilidad alta, por ejemplo. Sugiere que no habra goles en la mayoria de partidos.
+
+### Parte 2: Yi para modelo Poisson
+
+Se utiliza el modelo Poisson para representar a Y dado que este es util para los conteos. Y es una variable aleatoria para representar los goles.
+
+Cada Yi es una observacion, es decir los goles de cada partido puntual. Por otro lado $\lambda$ representa la tasa media de ocurrencia, osea, la cantidad promedio de goles por partido.
+
+### Parte 3: Total de goles por partido
+
+```{r}
+library(fivethirtyeight)
+data("wwc_2019_matches")
+wwc_2019_matches <- wwc_2019_matches %>% 
+  mutate(total_goals = score1 + score2)
+
+
+wwc_2019_matches <- wwc_2019_matches %>% 
+  tabyl(total_goals) %>% 
+   adorn_totals("row")%>%
+  filter (total_goals != "Total")
+
+ 
+```
+
+```{r}
+labels<-c("0","1","2","3","4","5","6","13")
+
+ggplot(data=wwc_2019_matches, aes(x=total_goals, y= n)) + scale_x_discrete(label = labels)+ geom_point()+geom_col(width=0.01)
+```
+
+Se observan la cantidad de goles por partido y cuantas veces se repite ese resutado, es decir la frecuencia para cada resultado.
+
+Para poder graficar el posterior y la verosimilitud necesitaremos calcular el total de goles que se convirtieron y el total de partidos. Este ultimo se observa que es 52 en wwc_2019_matches.
+
+Para calcular el total de goles, debemos multriplcar la frecuencia de cada resultado por el total de goles de ese resultad yluego sumarlo.
+
+```{r}
+wwc_2019_matches <- wwc_2019_matches %>%
+  mutate (total_goals=as.numeric(total_goals)) %>%
+  mutate (golesaux = n * total_goals)
+sum_goles <- sum(wwc_2019_matches$golesaux, na.rm = TRUE)
+```
+
+Removeremos el valor NA que generamos antes al utilizar as.numeric (generamos NA el total, que NO interesa graficarlo y alteraria la consistencia de nuestros datos)
+
+```{r}
+wwc_2019_matches <- wwc_2019_matches %>%
+  filter(!is.na(total_goals))
+plot_poisson_likelihood(wwc_2019_matches$total_goals, 15)
+```
+
+Se observa que los valores mas verosimiles de $\lambda$ rondan entre 3 y 5 goles de media por partido. Es una likelihood muy agresiva, en el sentido de que asigna probabilidad practicamente nula a 0 y 1 gol.
+
+### Grafico del posterior
+
+Ahora interesa calcular el posterior. Para ello utilizaremos la funcion plot_gamma_poisson.
+
+```{r}
+plot_gamma_poisson(1 , 0.25, sum_goles,52) + coord_cartesian(xlim = c(0, 10))
+  
+```
+
+En este caso, el posterior y la likelihood son practicamente iguales. Recien al hacer zoom encontramos una pequena diferencia:
+
+![Diferencia entre Posterior y likelihood](a.png){width="60%" height="40%" fig-align="center"}
+
+
+Pensamos que esto ocurre por varios motivos: Tenemos un n considerablemente grande (52), la funcion de verosimilitud esta sumamente concentrada entorno a un valor y el prior no esta tan concentrado, sino que es mas disperso.
+
+De esta manera, hay un cambio radical en nuestro entendimiento de la media de goles por partido. De pasar de pensar que la media podia ser 0, 1 o 2, pasamos a poder afirmar que la media de goles por partido estara en el entorno de 3.
+
+#Ejercicio 5.12: Control brains
+
+Aclaracion: Cuando la letra del ejercicio plantea "control subjects who have not been diagnosed with a concussion", entendemos que refiere al grupo denominado control, pero puede haber habido un error de interpretacion.
+
+Primero procederemos con cargar la data y filtrarla para el grupo de control. 
+
+```{r}
+data(football)
+control_subjects <- football %>%
+  filter(group == "control")
+```
+
+```{r}
+control_subjects %>%
+  summarize(mean(volume))
+```
+
+El promedio de los sujetos que no tuvieron contusiones es de 7.6026 cm3 en una muestra de 25 personas.
+
+```{r}
+ggplot(control_subjects, aes(x = volume)) + 
+  geom_density()+coord_cartesian(xlim = c(3, 12))
+```
+
+Se observa que los valores van desde 6.175 hasta 9.71 y alcanzan el maximo de densidad entorno a 7.3, que es levemente menor al promedio (7.6026).
+
+```{r}
+plot_normal_likelihood(y = control_subjects$volume, sigma = 0.5)
+
+```
+
+De esta manera se visualiza la verosimilitud de u. Los datos reflejan que la media, que calculamos anteriormente es el valor mas probable.  
+
+### Calculo del posterior
+
+Ya tenemos todo lo necesario para identificar el posterior: El prior tiene media θ=6.5 y τ=0.4 La muestra de los que no tuvieron contusion tiene media y=7.6026 y asumimos desvio conocido, pero por letra del ejercicio σ=0.5.
+
+Entonces el posterior se calculara de la siguiente forma, segun el modelo normal-normal.
+
+# eEl chunk de aca abajo solo lo meti para poder renderizar, hay que escribir eso en latex.
+
+```{r}
+#\$ μ\|vec{y}∼ N(6.5\*0.5\^2 / 25\* (0.4^2()+(0.5^2) + 7.6026\* (0.4\^2)/25 \* (0.4^2)+(0.5^2)), (0.4\^2() \* (0.5\^2)) / 25 \* (0.4^2)+(0.5^2))) \$
+
+#Es decir: $u|vec{y} ~ N ( 7....... , 0.009^2)$
+
+```
+
+### Parte 3: Plot del prior, verosimilitud y posterior
+
+```{r}
+plot_normal_normal(mean = 6.5, sd = 0.4, sigma = 0.5,
+                   y_bar = 7.6026, n = 25)
+
+```
+
+Nuevamente, dado que tenemos una verosimilitud cuyos datos estan tan concentrados, el posterior se pega mucho a la verosimilitud, siendo estos muy similares en forma y media.
+
+
+```{r}
+
+
+summarize_normal_normal(mean = 6.5, sd = 0.4, sigma = 0.5,
+                        y_bar = 7.6026, n = 25)
+```
+
+De esta manera confirmamos que nuestrio posterior calculado manualmente en la Parte 2 era correcto.
