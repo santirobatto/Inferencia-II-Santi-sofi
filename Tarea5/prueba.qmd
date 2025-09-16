@@ -3,7 +3,7 @@ title: "Ejercicios capitulos 4 y 5"
 author: "Sofia Terra, Santiago Robatto"
 date: "today"
 format: pdf
-mainfont: "Times New Roman"
+mainfont: "Calibri"
 pdf-engine: xelatex
 ---
 
@@ -385,9 +385,9 @@ $$
 De forma resumida:
 
 $$
-\begin{align*}
+\begin{aligned}
 f(\mu|\vec{y}) \propto \underbrace{\exp\left[-\frac{(\mu-\theta)^2}{2\tau^2}\right]}_{\text{Nucleo del Prior}} \cdot \underbrace{\exp\left[-\frac{(\bar{y}-\mu)^2}{2\sigma^2/n}\right]}_{\text{Nucleo de la Verosimilitud}}
-\end{align*}
+\end{aligned}
 $$ 
 
 El objetivo ahora es deshacernos de los paréntesis al cuadrado para poder agrupar los términos que contienen $\mu$. Para esto, se usa la fórmula del binomio conjugado: $(a-b)^2 = a^2 - 2ab + b^2$.
