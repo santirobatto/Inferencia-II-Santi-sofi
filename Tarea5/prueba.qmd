@@ -20,8 +20,9 @@ library(janitor)
 data(bechdel, package = "bayesrules")
 ```
 
-
 ## Ejercicio 4.19
+
+Lo primero que se realizó fue cargar la data y filtrarla por el año de interés (1980).
 
 ```{r, echo= FALSE, warning=FALSE, message=FALSE}
 #Filtramos 1980 
@@ -40,13 +41,22 @@ plot_beta_binomial(alpha = 1, beta = 1, y = 4, n = 14)
 
 ```
 
-Se observa que la verosimilitud es igual al posterior. Esto ocurre porque el prior es una beta (1,1) que es uniforme en el recorrido. Inter pretando esto de una manera bayesiana, signfiica que no aporta nada de informacion. Se utiliza para repersentar neutralidad absoltua. Siempre que partimos de una beta con tales parametros, la verosimilud sera igual al posterior.
+Se observa que la verosimilitud es igual al posterior. Esto ocurre porque el prior es una beta (1,1) que es uniforme en el recorrido. Interpretando esto de una manera bayesiana, signfiica que no aporta nada de informacion. Se utiliza para repersentar neutralidad absoltua. Siempre que partimos de una beta con tales parametros, la verosimilud sera igual al posterior.
 
-Para el **Calculo teorico de la esperanza y modo** utilizaremos el calculo del posterior del modelo beta binomial, que sabemos que distribuye Beta ($\alpha$+y,$\beta$+n-y).
+El posterior alcanza su moda entorno a 0.25 y deja prácticamente con probabilidad 0 alos valores superiores a 0.5. Esto nos da indicios que la varianza será considerablemente baja.
+
+Para el **Cálculo teórico de la esperanza y modo** utilizaremos el calculo del posterior del modelo beta binomial, que sabemos que distribuye Beta ($\alpha$+y,$\beta$+n-y).
+
+Dada dicha distribución, sabemos que la esperanza del posterior será:
+
+$$
+\mathbb{E}[\pi] = \frac{\alpha + y}{\alpha + y + \beta + n - y} =  \frac{\alpha + y}{\alpha  + \beta + n }= \frac{1+4}{1+1+14}=\frac{5}{16}= 0.3125
+$$
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 summarize_beta_binomial(alpha = 1, beta = 1, y = 4, n = 14)
 ```
+
 ```{r, echo= FALSE, warning=FALSE, message=FALSE}
 #Guardar el resumen en un objeto
 resumen1 <- summarize_beta_binomial(alpha = 1, beta = 1, y = 4, n = 14)
@@ -59,6 +69,11 @@ kable(resumen1,
                 full_width = FALSE) #Evita que la tabla ocupe toda la página
 ```
 
+De esta manera comprobamos que la Esperanza hallada de manera teórica es igual a la esperanza hallada por la función summarize. 
+
+Se refuerza la información que vimos en el gráifco del prior y posterior. Si bien comentamos que la moda del posterior estaba entorno a 0.25, ahora visualizamos que es exactamente 0.2857. Por otro lado se reafirma la baja varianza que comentamos.
+
+Finalemnte, es correcto que no exista el modo del prior, dado que es una beta(1,1) y esta perfectamente equidistribuida.
 
 ### Parte dos: Calculo para 1990
 
@@ -77,7 +92,8 @@ Partimos del posterior anterior que ya sabemos como distribuye gracias a la form
 plot_beta_binomial(alpha = 5, beta = 11, y = 6, n = 15)
 ```
 
-**Calculo de la esperanza teorica**
+Se observa que el psoterior está en un punto medio entre priory verosimiitud. Entendemos que esto es correcto dado que el n dado no es lo suficientemente grande para volcar los datos hacia la verosimilitud, y además prior y verosimilitud son igual de concentrados entorno a un valor, ninguno es mucho más disperso ni concentrado que el otro.
+
 
 ```{r, echo= FALSE, warning=FALSE, message=FALSE, include=FALSE}
 summarize_beta_binomial(5, 11, 6, 15)
@@ -93,8 +109,7 @@ kable(resumen2,
                 full_width = FALSE) 
 ```
 
-
-### Parte 3: Ano 2000
+### Parte 3: Año 2000
 
 Nuestro nuevo prior distribuira Beta(11, 20)
 
@@ -109,6 +124,7 @@ bechdel %>%
 plot_beta_binomial(alpha = 11, beta = 20 , y = 29, n = 63)
 
 ```
+
 ```{r, echo= FALSE, warning=FALSE, message=FALSE, include=FALSE}
 summarize_beta_binomial(11, 20, 29, 63)
 ```
@@ -140,6 +156,7 @@ plot_beta_binomial(alpha = 1, beta = 1 , y = 39, n = 92)
 ```{r, echo= FALSE, warning=FALSE, message=FALSE, include=FALSE}
 summarize_beta_binomial(1, 1, 39, 92)
 ```
+
 ```{r, echo= FALSE, warning=FALSE, message=FALSE}
 resumen4 <- summarize_beta_binomial(alpha = 1, beta = 1, y = 39, n = 92)
 
@@ -151,6 +168,8 @@ kable(resumen4,
 ```
 
 Se observa que Jenna llega a la misma posterior que John; probando que no importa el orden en el que mires la informacion, se llegara a los mismos resultados. John realiza su analisis en tres dias (pasos), mientras que Jenna solo en uno. Pero al partir del mismo prior (Beta(1,1)) y utilizar las mismas muestras, llegan a los mismos posteriors.
+
+Esta propiedad es denominada **propiedad de consistencia** o tambien **acumulacion secuencial** y como comentamos anteriormente permite actualizar de una sola vez o en "capas". 
 
 ## Ejercicio 5.7: Womens world cup
 
@@ -176,7 +195,6 @@ Cada Yi es una observacion, es decir los goles de cada partido puntual. Por otro
 library(fivethirtyeight)
 data("wwc_2019_matches")
 ```
-
 
 ```{r, echo= FALSE, warning=FALSE, message=FALSE}
 wwc_2019_matches <- wwc_2019_matches %>% 
@@ -287,18 +305,18 @@ $$
 \mu|\vec{y} \sim N\left(\theta\frac{\sigma^2}{n\tau^2 + \sigma^2} + \bar{y}\frac{n\tau^2}{n\tau^2 + \sigma^2}, \frac{\tau^2\sigma^2}{n\tau^2 + \sigma^2}\right)
 $$
 
-Por lo tanto, sustituyendo los valores que obtuvimos llegammos a que el modelo bayesiano conjugado Normal-Normal es el siguiente: 
+Por lo tanto, sustituyendo los valores que obtuvimos llegammos a que el modelo bayesiano conjugado Normal-Normal es el siguiente:
 
 $$
 \mu|\vec{y} \sim N\left(6.5\frac{0.5^2}{25*0.4^2 + 0.5^2} + \bar{7.6026}\frac{25*0.4^2}{25*0.4^2 + 0.5^2}, \frac{0.4^20.5^2}{25*0.4^2 + 0.5^2}\right)
-$$ 
-Entonces: 
+$$ Entonces:
 
 $$
 \mu|\vec{y} \sim N(7.538, \ 0.0094)
 $$
 
 El grafico de nuestra distriubucion queda de la forma:
+
 ```{r, echo= FALSE, warning=FALSE, message=FALSE}
 media_posterior <- 7.538
 varianza_posterior <- 0.0094
@@ -315,7 +333,6 @@ plot_normal(mean = media_posterior, sd = desviacion_estandar) +
     y = "Densidad"
   )
 ```
-
 
 ### Parte 3: Plot del prior, verosimilitud y posterior
 
@@ -343,7 +360,6 @@ kable(resunormal,
 
 ```
 
-
 De esta manera confirmamos que nuestrio posterior calculado manualmente en la Parte 2 era correcto.
 
 ### Ejercicio Normal-Normal Conjugada
@@ -356,29 +372,29 @@ De esta manera confirmamos que nuestrio posterior calculado manualmente en la Pa
 
 (iii) Analizar la influencia del tamaño muestral n sobre la media y la varianza de la distribución a posterior para μ. Conclusión: la distribución a priori normal para μ es conjugada con el modelo muestral de observaciones independientes de una población normal con media μ y varianza conocida σ2
 
-**Respuestas:**
-Nos basamos en la guia del libro para demostrar la consigna paso a paso.
-Vamos a probar que la posteriori del modelo Normal-Normal sigue tambien una distribucion normal
+**Respuestas:** Nos basamos en la guia del libro para demostrar la consigna paso a paso. Vamos a probar que la posteriori del modelo Normal-Normal sigue tambien una distribucion normal
 
-Primero, tenemos que la funcion de densidad de mu (posteriori) es proporcional al producto de la funcion de densidad priori de la Normal y la funcion de verosimilitud. Lo que queremos encontrar es la posteriori, por otro lado, el priori es lo que sabiamos de mu antes de ver los datos (la verosimilitud).
-Para todo mu perteneciente a los reales tenemos:
+Primero, tenemos que la funcion de densidad de mu (posteriori) es proporcional al producto de la funcion de densidad priori de la Normal y la funcion de verosimilitud. Lo que queremos encontrar es la posteriori, por otro lado, el priori es lo que sabiamos de mu antes de ver los datos (la verosimilitud). Para todo mu perteneciente a los reales tenemos:
 
 $$
 \begin{aligned}
 f(\mu|\vec{y}) &\propto f(\mu)L(\mu|\vec{y}) \propto \exp\left[-\frac{(\mu-\theta)^2}{2\tau^2}\right] \cdot \exp\left[-\frac{(\bar{y}-\mu)^2}{2\sigma^2/n}\right] \\[2ex]
 \end{aligned}
 $$
-De forma resumida: 
+
+De forma resumida:
+
 $$
 \begin{align*}
 f(\mu|\vec{y}) \propto \underbrace{\exp\left[-\frac{(\mu-\theta)^2}{2\tau^2}\right]}_{\text{Nucleo del Prior}} \cdot \underbrace{\exp\left[-\frac{(\bar{y}-\mu)^2}{2\sigma^2/n}\right]}_{\text{Nucleo de la Verosimilitud}}
 \end{align*}
-$$
+$$ 
+
 El objetivo ahora es deshacernos de los paréntesis al cuadrado para poder agrupar los términos que contienen $\mu$. Para esto, se usa la fórmula del binomio conjugado: $(a-b)^2 = a^2 - 2ab + b^2$.
 
 Al expandir los exponentes, obtenemos:
- $-(\mu - \theta)^2 = -(\mu^2 - 2\mu\theta + \theta^2) = -\mu^2 + 2\mu\theta - \theta^2$
- $-(\bar{y} - \mu)^2 = -(\mu - \bar{y})^2 = -(\mu^2 - 2\mu\bar{y} + \bar{y}^2) = -\mu^2 + 2\mu\bar{y} - \bar{y}^2$
+
+$-(\mu - \theta)^2 = -(\mu^2 - 2\mu\theta + \theta^2) = -\mu^2 + 2\mu\theta - \theta^2$ $-(\bar{y} - \mu)^2 = -(\mu - \bar{y})^2 = -(\mu^2 - 2\mu\bar{y} + \bar{y}^2) = -\mu^2 + 2\mu\bar{y} - \bar{y}^2$
 
 $$
 \begin{aligned}
@@ -391,8 +407,9 @@ $$
 \begin{aligned}
 &\propto \exp\left[\frac{-\mu^2 + 2\mu\theta}{2\tau^2}\right] \exp\left[\frac{-\mu^2 + 2\mu\bar{y}}{2\sigma^2/n}\right] \\[2ex]
 \end{aligned}
-$$
-A continuacion, hacemos denominador comun para luego poder aplicar las propiedades de potencia y sumar los exponentes:
+$$ 
+A continuacion, hacemos denominador comun para luego poder aplicar las propiedades de potencia y sumar los exponentes: 
+
 $$
 \begin{aligned}
 &\propto \exp\left[\frac{(-\mu^2 + 2\mu\theta)\sigma^2/n}{2\tau^2\sigma^2/n}\right] \exp\left[\frac{(-\mu^2 + 2\mu\bar{y})n\tau^2}{2\tau^2\sigma^2/n}\right] \\
@@ -400,19 +417,22 @@ $$
 \end{aligned}
 $$
 
-Ahora, agrupamos los terminos mu y mu^2 para simplificar:
+Ahora, agrupamos los terminos mu y mu\^2 para simplificar:
 
 $$
 \begin{aligned}
 f(\mu|\vec{y}) &\propto \exp\left[\frac{-\mu^2(n\tau^2 + \sigma^2) + 2\mu(\theta\sigma^2 + \bar{y}n\tau^2)}{2\tau^2\sigma^2}\right] \\
 \end{aligned}
 $$
-Como podemos hacer para demostrar que lo que obtuvimos es una distribucion normal? Debemos lograr de alguna manera "hacer aparecer" el nucleo de la Normal. Un truco importante que se utiliza es el "compelte the square" (completar el cuadrado).
+
+Como podemos hacer para demostrar que lo que obtuvimos es una distribucion normal? Debemos lograr de alguna manera "hacer aparecer" el nucleo de la Normal. Un truco importante que se utiliza es el "completee the square" (completar el cuadrado). 
+
 $$
 \begin{aligned}
 &\propto \exp\left[\frac{-\mu^2 + 2\mu\left(\frac{\theta\sigma^2 + \bar{y}n\tau^2}{n\tau^2 + \sigma^2}\right)}{2(\tau^2\sigma^2)/(n\tau^2 + \sigma^2)}\right] \\[3ex]
 \end{aligned}
-$$
+$$ 
+
 Ahora podemos factorizar:
 
 $$
@@ -421,12 +441,14 @@ f(\mu|\vec{y}) &\propto \exp\left[-\frac{\left(\mu - \frac{\theta\sigma^2 + \bar
 \end{aligned}
 $$
 
-Obtenemos el nucleo  de una funcion de densidad de una Normal para mu. Utilizando esto podemos concluir que la distribucion queda de esta forma:
+Obtenemos el nucleo de una funcion de densidad de una Normal para mu. Utilizando esto podemos concluir que la distribucion queda de esta forma:
+
 $$
 \begin{aligned}
 \mu|\vec{y} &\sim N\left(\frac{\theta\sigma^2 + \bar{y}n\tau^2}{n\tau^2 + \sigma^2}, \frac{\tau^2\sigma^2}{n\tau^2 + \sigma^2}\right) \\[3ex]
 \end{aligned}
-$$
+$$ 
+
 Por lo tanto, queda demostrado que la posteriori de una Normal-Normal conjugada es tambien una Normal.
 
 Podemos reorganizar la media de la posteriori para demostrar que es el promedio ponderado de la media a priori de $\mu$ ($E(\mu) = \theta$) y la media de la muestra de $\bar{y}$:
@@ -441,15 +463,15 @@ $$
 \end{aligned}
 $$
 
-Obtenemos tambien que la varianza a posteriori obtiene informacion de la variabilidad a priori de $\tau$ y la variabilidad en los datos de $\sigma$. Ambos se ven afectados por el tamano de la muestra, n. 
+Obtenemos tambien que la varianza a posteriori obtiene informacion de la variabilidad a priori de $\tau$ y la variabilidad en los datos de $\sigma$. Ambos se ven afectados por el tamano de la muestra, n.
 
 En primer lugar, a medida que n aumente, la media a posteriori toma una ponderacion menos en la media a priori y mayor ponderacion en la media de la muestra $\bar{y}$. Tenemos entonces:
 
-$$
-\begin{aligned}
-\frac{\sigma^2}{n\tau^2 + \sigma^2} \to 0 \quad \text{y} \quad \frac{n\tau^2}{n\tau^2 + \sigma^2} \to 1
-\end{aligned}
-$$
+  $$
+  \begin{aligned}
+  \frac{\sigma^2}{n\tau^2 + \sigma^2} \to 0 \quad \text{y} \quad \frac{n\tau^2}{n\tau^2 + \sigma^2} \to 1
+  \end{aligned}
+  $$
 
 Luego, cuando n aumenta, la variana posteriori disminuye:
 
@@ -460,7 +482,3 @@ $$
 $$
 
 Esto significa que, a medida que obtenemos mayor cantidad de datos, la certeza de la posterior con respecto a $\mu$ aumenta y se vuelve mas cercana a los valores de la informacion.
-
-
-
-
