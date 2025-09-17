@@ -32,7 +32,7 @@ bechdel %>%
   adorn_totals("row")
 ```
 
-Generamos el grafico de prior, verosimilitud y posterior con plot beta binomial
+Generamos el gráfico de prior, la verosimilitud y el posterior con plot_beta_binomial:
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 
@@ -41,11 +41,11 @@ plot_beta_binomial(alpha = 1, beta = 1, y = 4, n = 14)
 
 ```
 
-Se observa que la verosimilitud es igual al posterior. Esto ocurre porque el prior es una beta (1,1) que es uniforme en el recorrido. Interpretando esto de una manera bayesiana, signfiica que no aporta nada de informacion. Se utiliza para repersentar neutralidad absoltua. Siempre que partimos de una beta con tales parametros, la verosimilud sera igual al posterior.
+Se observa que la verosimilitud es igual al posterior. Esto ocurre porque el prior es una beta (1,1) que es uniforme en el recorrido. Interpretando esto de una manera bayesiana, signfiica que no aporta nada de información. Se utiliza para repersentar neutralidad absoltua. Siempre que partimos de una beta con tales parámetros, la verosimilud será igual al posterior.
 
-El posterior alcanza su moda entorno a 0.25 y deja prácticamente con probabilidad 0 alos valores superiores a 0.5. Esto nos da indicios que la varianza será considerablemente baja.
+El posterior alcanza su moda en torno a 0.25 y deja prácticamente con probabilidad 0 a los valores superiores a 0.5. Esto nos da indicios de que la varianza será considerablemente baja.
 
-Para el **Cálculo teórico de la esperanza y modo** utilizaremos el calculo del posterior del modelo beta binomial, que sabemos que distribuye Beta ($\alpha$+y,$\beta$+n-y).
+Para el **Cálculo teórico de la esperanza y modo** utilizaremos el cálculo del posterior del modelo beta binomial, que sabemos que distribuye Beta ($\alpha$+y,$\beta$+n-y).
 
 Dada dicha distribución, sabemos que la esperanza del posterior será:
 
@@ -69,7 +69,7 @@ kable(resumen1,
                 full_width = FALSE) #Evita que la tabla ocupe toda la página
 ```
 
-De esta manera comprobamos que la Esperanza hallada de manera teórica es igual a la esperanza hallada por la función summarize. 
+De esta manera comprobamos que la esperanza hallada de manera teórica es igual a la esperanza hallada por la función summarize. 
 
 Se refuerza la información que vimos en el gráifco del prior y posterior. Si bien comentamos que la moda del posterior estaba entorno a 0.25, ahora visualizamos que es exactamente 0.2857. Por otro lado se reafirma la baja varianza que comentamos.
 
@@ -86,13 +86,13 @@ bechdel %>%
   adorn_totals("row")
 ```
 
-Partimos del posterior anterior que ya sabemos como distribuye gracias a la formula del posterior en el modelo beta binomial y cargamos la verosimilitud buscada en el paso anterior. Dicho "posterior" se convirtio en nuestro nuevo prior y se agrega una nueva verosimilitud.
+Partimos del posterior anterior que ya sabemos como distribuye gracias a la fórmula del posterior en el modelo beta binomial y cargamos la verosimilitud buscada en el paso anterior. Dicho "posterior" se convirtió en nuestro nuevo prior y se agrega una nueva verosimilitud.
 
 ```{r, echo= FALSE, warning=FALSE, message=FALSE}
 plot_beta_binomial(alpha = 5, beta = 11, y = 6, n = 15)
 ```
 
-Se observa que el psoterior está en un punto medio entre priory verosimiitud. Entendemos que esto es correcto dado que el n dado no es lo suficientemente grande para volcar los datos hacia la verosimilitud, y además prior y verosimilitud son igual de concentrados entorno a un valor, ninguno es mucho más disperso ni concentrado que el otro.
+Se observa que el psoterior está en un punto medio entre el priori y la verosimiitud. Entendemos que esto es correcto dado que el n dado no es lo suficientemente grande para volcar los datos hacia la verosimilitud, y además el prior y la verosimilitud se encuentran ingualmente concentrados en torno a un valor, ninguno es mucho más disperso ni concentrado que el otro.
 
 
 ```{r, echo= FALSE, warning=FALSE, message=FALSE, include=FALSE}
@@ -111,7 +111,7 @@ kable(resumen2,
 
 ### Parte 3: Año 2000
 
-Nuestro nuevo prior distribuira Beta(11, 20)
+Nuestro nuevo prior distribuirá Beta(11, 20)
 
 ```{r, echo= FALSE, warning=FALSE, message=FALSE}
 bechdel %>% 
@@ -167,9 +167,9 @@ kable(resumen4,
                 full_width = FALSE) 
 ```
 
-Se observa que Jenna llega a la misma posterior que John; probando que no importa el orden en el que mires la informacion, se llegara a los mismos resultados. John realiza su analisis en tres dias (pasos), mientras que Jenna solo en uno. Pero al partir del mismo prior (Beta(1,1)) y utilizar las mismas muestras, llegan a los mismos posteriors.
+Se observa que Jenna llega a la misma posterior que John; probando que no importa el orden en el que se mire la información, se llegará a los mismos resultados. John realiza su análisis en tres días (pasos), mientras que Jenna sólo en uno. Pero al partir del mismo prior (Beta(1,1)) y utilizar las mismas muestras, llegan a los mismos posteriors.
 
-Esta propiedad es denominada **propiedad de consistencia** o tambien **acumulación secuencial** y como comentamos anteriormente permite actualizar de una sola vez o en "capas". 
+Esta propiedad es denominada **propiedad de consistencia** o también **acumulación secuencial** y como comentamos anteriormente permite actualizar de una sola vez o en "capas". 
 
 ## Ejercicio 5.7: Womens world cup
 
@@ -181,7 +181,7 @@ plot_gamma(1, 0.25)
 
 ```
 
-Se observa que $\lambda$ es decreciente y parte desde cero, con asimetria a la derecha. Es sumamente coherente con el contexto de que $\lambda$ representa la cantidad de goles promedio, seria extrano que 20 tenga probabilidad alta, por ejemplo. Sugiere que no habra goles en la mayoria de partidos.
+Se observa que $\lambda$ es decreciente y parte desde cero, con asimetría a la derecha. Es sumamente coherente con el contexto de que $\lambda$ representa la cantidad de goles promedio, sería extraño que 20 tenga probabilidad alta, por ejemplo. Sugiere que no habrá goles en la mayoría de partidos.
 
 ### Parte 2: Yi para modelo Poisson
 
