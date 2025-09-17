@@ -22,7 +22,7 @@ data(bechdel, package = "bayesrules")
 
 ## Ejercicio 4.19
 
-Lo primero que se realizó fue cargar la data y filtrarla por el año de interés (1980).
+Lo primero que se realizó fue cargar los datos y filtrarlos por el año de interés (1980).
 
 ```{r, echo= FALSE, warning=FALSE, message=FALSE}
 #Filtramos 1980 
@@ -169,7 +169,7 @@ kable(resumen4,
 
 Se observa que Jenna llega a la misma posterior que John; probando que no importa el orden en el que mires la informacion, se llegara a los mismos resultados. John realiza su analisis en tres dias (pasos), mientras que Jenna solo en uno. Pero al partir del mismo prior (Beta(1,1)) y utilizar las mismas muestras, llegan a los mismos posteriors.
 
-Esta propiedad es denominada **propiedad de consistencia** o tambien **acumulacion secuencial** y como comentamos anteriormente permite actualizar de una sola vez o en "capas". 
+Esta propiedad es denominada **propiedad de consistencia** o tambien **acumulación secuencial** y como comentamos anteriormente permite actualizar de una sola vez o en "capas". 
 
 ## Ejercicio 5.7: Womens world cup
 
@@ -185,9 +185,9 @@ Se observa que $\lambda$ es decreciente y parte desde cero, con asimetria a la d
 
 ### Parte 2: Yi para modelo Poisson
 
-Se utiliza el modelo Poisson para representar a Y dado que este es util para los conteos. Y es una variable aleatoria para representar los goles.
+Se utiliza el modelo Poisson para representar a Y dado que este es útil para los conteos. Y es una variable aleatoria para representar los goles.
 
-Cada Yi es una observacion, es decir los goles de cada partido puntual. Por otro lado $\lambda$ representa la tasa media de ocurrencia, osea, la cantidad promedio de goles por partido.
+Cada Yi es una observacio¿ón, es decir los goles de cada partido puntual. Por otro lado $\lambda$ representa la tasa media de ocurrencia, osea, la cantidad promedio de goles por partido.
 
 ### Parte 3: Total de goles por partido
 
@@ -228,7 +228,7 @@ wwc_2019_matches <- wwc_2019_matches %>%
 sum_goles <- sum(wwc_2019_matches$golesaux, na.rm = TRUE)
 ```
 
-Removeremos el valor NA que generamos antes al utilizar as.numeric (generamos NA el total, que NO interesa graficarlo y alteraria la consistencia de nuestros datos)
+"Sacamos" el valor NA que generamos antes al utilizar as.numeric (NO interesa graficarlo y alteraría la consistencia de nuestros datos)
 
 ```{r, echo= FALSE, warning=FALSE, message=FALSE}
 wwc_2019_matches <- wwc_2019_matches %>%
@@ -236,7 +236,7 @@ wwc_2019_matches <- wwc_2019_matches %>%
 plot_poisson_likelihood(wwc_2019_matches$total_goals, 15)
 ```
 
-Se observa que los valores mas verosimiles de $\lambda$ rondan entre 3 y 5 goles de media por partido. Es una likelihood muy agresiva, en el sentido de que asigna probabilidad practicamente nula a 0 y 1 gol.
+Se observa que los valores más verosimiles de $\lambda$ rondan entre 3 y 5 goles de media por partido. Es una likelihood muy agresiva, en el sentido de que asigna probabilidad practicamente nula a 0 y 1 gol.
 
 ### Grafico del posterior
 
@@ -251,15 +251,15 @@ En este caso, el posterior y la likelihood son practicamente iguales. Recien al 
 
 ![Diferencia entre Posterior y likelihood](a.png){width="60%" height="40%" fig-align="center"}
 
-Pensamos que esto ocurre por varios motivos: Tenemos un n considerablemente grande (52), la funcion de verosimilitud esta sumamente concentrada entorno a un valor y el prior no esta tan concentrado, sino que es mas disperso.
+Pensamos que esto ocurre por varios motivos: Tenemos un n considerablemente grande (52), la función de verosimilitud está sumamente concentrada entorno a un valor y el prior no está tan concentrado, sino que es más disperso.
 
 De esta manera, hay un cambio radical en nuestro entendimiento de la media de goles por partido. De pasar de pensar que la media podia ser 0, 1 o 2, pasamos a poder afirmar que la media de goles por partido estara en el entorno de 3.
 
 #Ejercicio 5.12: Control brains
 
-Aclaracion: Cuando la letra del ejercicio plantea "control subjects who have not been diagnosed with a concussion", entendemos que refiere al grupo denominado control, pero puede haber habido un error de interpretacion.
+Aclaración: Cuando la letra del ejercicio plantea "control subjects who have not been diagnosed with a concussion", entendemos que refiere al grupo denominado control, pero puede haber habido un error de interpretación.
 
-Primero procederemos con cargar la data y filtrarla para el grupo de control.
+Primero procederemos con cargar los datos y filtramos para el grupo de control.
 
 ```{r, echo= FALSE, warning=FALSE, message=FALSE}
 data(football)
@@ -279,7 +279,7 @@ ggplot(control_subjects, aes(x = volume)) +
   geom_density()+coord_cartesian(xlim = c(3, 12))
 ```
 
-Se observa que los valores van desde 6.175 hasta 9.71 y alcanzan el maximo de densidad entorno a 7.3, que es levemente menor al promedio (7.6026).
+Se observa que los valores van desde 6.175 hasta 9.71 y alcanzan el máximo de densidad entorno a 7.3, que es levemente menor al promedio (7.6026).
 
 ```{r, echo= FALSE, warning=FALSE, message=FALSE}
 plot_normal_likelihood(y = control_subjects$volume, sigma = 0.5)
@@ -341,7 +341,7 @@ plot_normal_normal(mean = 6.5, sd = 0.4, sigma = 0.5,
                    y_bar = 7.6026, n = 25)
 ```
 
-Nuevamente, dado que tenemos una verosimilitud cuyos datos estan tan concentrados, el posterior se pega mucho a la verosimilitud, siendo estos muy similares en forma y media.
+Nuevamente, dado que tenemos una verosimilitud cuyos datos están tan concentrados, el posterior se pega mucho a la verosimilitud, siendo estos muy similares en forma y media.
 
 ```{r, echo= FALSE, warning=FALSE, message=FALSE, include=FALSE}
 summarize_normal_normal(mean = 6.5, sd = 0.4, sigma = 0.5,
@@ -372,9 +372,9 @@ De esta manera confirmamos que nuestrio posterior calculado manualmente en la Pa
 
 (iii) Analizar la influencia del tamaño muestral n sobre la media y la varianza de la distribución a posterior para μ. Conclusión: la distribución a priori normal para μ es conjugada con el modelo muestral de observaciones independientes de una población normal con media μ y varianza conocida σ2
 
-**Respuestas:** Nos basamos en la guia del libro para demostrar la consigna paso a paso. Vamos a probar que la posteriori del modelo Normal-Normal sigue tambien una distribucion normal
+**Respuestas:** Nos basamos en la guia del libro para demostrar la consigna paso a paso. Vamos a probar que la posteriori del modelo Normal-Normal sigue también una distribución normal
 
-Primero, tenemos que la funcion de densidad de mu (posteriori) es proporcional al producto de la funcion de densidad priori de la Normal y la funcion de verosimilitud. Lo que queremos encontrar es la posteriori, por otro lado, el priori es lo que sabiamos de mu antes de ver los datos (la verosimilitud). Para todo mu perteneciente a los reales tenemos:
+Primero, tenemos que la función de densidad de $\mu$ (posteriori) es proporcional al producto de la función de densidad priori de la Normal y la función de verosimilitud. Lo que queremos encontrar es la posteriori, por otro lado, el priori es lo que sabiamos de $\mu$ antes de ver los datos (la verosimilitud). Para todo $\mu$ perteneciente a los reales tenemos:
 
 $$
 \begin{aligned}
@@ -394,7 +394,9 @@ El objetivo ahora es deshacernos de los paréntesis al cuadrado para poder agrup
 
 Al expandir los exponentes, obtenemos:
 
-$-(\mu - \theta)^2 = -(\mu^2 - 2\mu\theta + \theta^2) = -\mu^2 + 2\mu\theta - \theta^2$ $-(\bar{y} - \mu)^2 = -(\mu - \bar{y})^2 = -(\mu^2 - 2\mu\bar{y} + \bar{y}^2) = -\mu^2 + 2\mu\bar{y} - \bar{y}^2$
+$-(\mu - \theta)^2 = -(\mu^2 - 2\mu\theta + \theta^2) = -\mu^2 + 2\mu\theta - \theta^2$
+
+$-(\bar{y} - \mu)^2 = -(\mu - \bar{y})^2 = -(\mu^2 - 2\mu\bar{y} + \bar{y}^2) = -\mu^2 + 2\mu\bar{y} - \bar{y}^2$
 
 $$
 \begin{aligned}
@@ -417,7 +419,7 @@ $$
 \end{aligned}
 $$
 
-Ahora, agrupamos los terminos mu y mu\^2 para simplificar:
+Ahora, agrupamos los terminos mu y $\mu^2$ para simplificar:
 
 $$
 \begin{aligned}
@@ -425,7 +427,7 @@ f(\mu|\vec{y}) &\propto \exp\left[\frac{-\mu^2(n\tau^2 + \sigma^2) + 2\mu(\theta
 \end{aligned}
 $$
 
-Como podemos hacer para demostrar que lo que obtuvimos es una distribucion normal? Debemos lograr de alguna manera "hacer aparecer" el nucleo de la Normal. Un truco importante que se utiliza es el "completee the square" (completar el cuadrado). 
+¿Cómo podemos hacer para demostrar que lo que obtuvimos es una distribucion normal? Debemos lograr de alguna manera "hacer aparecer" el núcleo de la Normal. Un truco importante que se utiliza es el "complete the square" (completar el cuadrado). 
 
 $$
 \begin{aligned}
@@ -441,7 +443,7 @@ f(\mu|\vec{y}) &\propto \exp\left[-\frac{\left(\mu - \frac{\theta\sigma^2 + \bar
 \end{aligned}
 $$
 
-Obtenemos el nucleo de una funcion de densidad de una Normal para mu. Utilizando esto podemos concluir que la distribucion queda de esta forma:
+Obtenemos el núcleo de una función de densidad de una Normal para $\mu$. Utilizando esto podemos concluir que la distribución queda de esta forma:
 
 $$
 \begin{aligned}
@@ -449,7 +451,7 @@ $$
 \end{aligned}
 $$ 
 
-Por lo tanto, queda demostrado que la posteriori de una Normal-Normal conjugada es tambien una Normal.
+Por lo tanto, queda demostrado que la posteriori de una Normal-Normal conjugada es también una Normal.
 
 Podemos reorganizar la media de la posteriori para demostrar que es el promedio ponderado de la media a priori de $\mu$ ($E(\mu) = \theta$) y la media de la muestra de $\bar{y}$:
 
@@ -463,9 +465,9 @@ $$
 \end{aligned}
 $$
 
-Obtenemos tambien que la varianza a posteriori obtiene informacion de la variabilidad a priori de $\tau$ y la variabilidad en los datos de $\sigma$. Ambos se ven afectados por el tamano de la muestra, n.
+Concluimos también que la varianza a posteriori obtiene información de la variabilidad a priori de $\tau$ y la variabilidad en los datos de $\sigma$. Ambos se ven afectados por el tamaño de la muestra, n.
 
-En primer lugar, a medida que n aumente, la media a posteriori toma una ponderacion menos en la media a priori y mayor ponderacion en la media de la muestra $\bar{y}$. Tenemos entonces:
+En primer lugar, a medida que n aumente, la media a posteriori toma una ponderación menor en la media a priori y mayor ponderación en la media de la muestra $\bar{y}$. Tenemos entonces:
 
   $$
   \begin{aligned}
@@ -473,7 +475,7 @@ En primer lugar, a medida que n aumente, la media a posteriori toma una ponderac
   \end{aligned}
   $$
 
-Luego, cuando n aumenta, la variana posteriori disminuye:
+Luego, cuando n aumenta, la varianza a posteriori disminuye:
 
 $$
 \begin{aligned}
@@ -481,4 +483,4 @@ $$
 \end{aligned}
 $$
 
-Esto significa que, a medida que obtenemos mayor cantidad de datos, la certeza de la posterior con respecto a $\mu$ aumenta y se vuelve mas cercana a los valores de la informacion.
+Esto significa que, a medida que obtenemos mayor cantidad de datos, la certeza de la posterior con respecto a $\mu$ aumenta y se vuelve más cercana a los valores de la información.
