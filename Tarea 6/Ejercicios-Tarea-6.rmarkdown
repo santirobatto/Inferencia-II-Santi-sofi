@@ -1,0 +1,213 @@
+---
+title: "Tarea 6: Ejercicios 6.7 6.15 7.9 y 7.10"
+format: pdf
+editor: visual
+author: "Santiago Robatto, Sofía Terra"
+execute: 
+  echo: false       
+  warning: false    
+  message: false    
+---
+
+## Exercise 6.7 (Normal-Normal grid approximation)
+### Parte A: 
+
+```{r}
+library(janitor)
+library(tidyverse)
+library(rstan)
+library(ggplot2)
+library(bayesrules)
+```
+
+Como primer paso definimos la grilla de valores posibles de $\mu$, entre 5 y 15 by 1, dado que es el recorrido indicado en la letra. 
+
+```{r}
+# Paso 1: Definimos la grilla 
+grid_data <- data.frame(mu_grid = seq(from = 5, to = 15, by=1))
+grid_data$mu_grid
+```
+
+Para cada valor de $\mu$ evaluaremos el prior y la verosimilitud. 
+
+Para el prior utilizaremos el dato de letra que $\mu \sim \mathcal{N}(10, 1.2^2)$ y evaluaremos eso. 
+
+A su vez, creamos un vector con el valor de las observaciones $(Y_1, Y_2, Y_3, Y_4) = (7.1,\; 8.9,\; 8.4,\; 8.6)$ para poder hallar la verosimilitud.
+
+```{r}
+y <- c(7.1, 8.9, 8.4, 8.6)
+grid_data <- grid_data %>% 
+  mutate(prior = dnorm (mu_grid, 10, 1.2), 
+   likelihood = sapply(mu_grid, function(mu) {
+      prod(dnorm(y, mean = mu, sd = 1.3)) #El sapply es para recorrer todos los valores de mu_grid con la funcion que recorre todo el recorrido y hace el producto. Se hace el producto de verosimilitudes dado que son V.A independientes.
+    })
+  )
+grid_data
+```
+
+Finalmente ya podemos aproximar el posterior, haciendo el producto de likelihood x prior y dividiendo entre su suma. Hacer el cociente lo que hace es asegurarnos de obtener una probabilidad, dado que estamos normalizando la funcion. 
+
+$$
+p(\mu_j\mid y)=\frac{p(y\mid\mu_j)\,p(\mu_j)}{\displaystyle\sum_{k} p(y\mid\mu_k)\,p(\mu_k)}
+$$
+
+```{r}
+grid_data <- grid_data %>% 
+  mutate(unnormalized = likelihood * prior,
+         posterior = unnormalized / sum(unnormalized))
+grid_data
+```
+
+El siguiente paso  es solo un checkeo que haya funcionado bien todo.
+El hecho de que la suma de la variable posterior sume 1 nos asegura que esta efectivamente es una probabilidad. 
+
+
+```{r}
+grid_data %>% 
+  summarize(sum(unnormalized), sum(posterior))
+# Examine the grid approximated posterior
+
+```
+
+Graficamos el posterior obtenido en grid data, el cual nos devolvera los valores mas probables de $\mu$. 
+De esta manera, a partir de un priori normal (continuo) y 4 observaciones, generamos una distribucion a posteriori discreta para $\mu$. Los valores mas probables son 8 y 9, pero al usar solo 10 valores para modelar $\mu$ perdimos mucha precision. Es por ello que repetiremos el experimento en la parte b, pero usando 201 valores posibles para $\mu$. 
+
+```{r}
+ggplot(grid_data, aes(x = mu_grid, y = posterior)) + 
+  geom_point() + 
+  geom_segment(aes(x = mu_grid, xend = mu_grid, y = 0, yend = posterior))+
+  scale_x_continuous(breaks = 5:15, labels = 5:15)
+
+```
+
+Ademas, podemos samplear a partir de lo obtenido anteriormente y compararlo contra el posterior real:
+
+```{r}
+summarize_normal_normal(10, 1.2, 1.3, mean(c(7.1, 8.9, 8.4, 8.6)), 4)
+```
+
+Por ende sabemos que el posterior teorico del ejemplo distribuye  $\mu \sim \mathcal{N}(8.64698, 0.571^2)$
+
+Para el sampleo:
+```{r}
+set.seed(84735)
+post_sample <- sample_n(grid_data, size = 10000, 
+                        weight = posterior, replace = TRUE)
+post_sample %>% 
+  tabyl(mu_grid) %>% 
+  adorn_totals("row")
+
+
+
+ggplot(grid_data, aes(x = mu_grid, y = posterior)) +
+  geom_col() +
+  stat_function(fun = dnorm,
+                args = list(mean = 8.64, sd = 0.57),
+                color = "red") +
+  labs(x = expression(mu), y = "Posterior") +
+  theme_minimal()+
+  scale_x_continuous(breaks = 5:15, labels = 5:15)
+```
+
+De esta manera vemos que el histograma de aproximacion por grilla es sumamente similar al posterior real. 
+
+Sin embargo, como ya vimos antes, al haber elegido pocos valores posibles para $\mu$ la aproximacion no es precisa. 
+
+### Parte B:
+Replicaremos el codigo realizado en la parte anterior, con la unica diferencia que la secuencia para valores de $\mu$ sera de a 0.05 en vez de a 1. 
+
+```{r, include=FALSE }
+# Paso 1: Definimos la grilla 
+grid_data <- data.frame(mu_grid = seq(from = 5, to = 15, length=201))
+```
+
+```{r,include=FALSE}
+y <- c(7.1, 8.9, 8.4, 8.6)
+grid_data <- grid_data %>% 
+  mutate(prior = dnorm (mu_grid, 10, 1.2), 
+   likelihood = sapply(mu_grid, function(mu) {
+      prod(dnorm(y, mean = mu, sd = 1.3))
+    })
+  )
+grid_data <- grid_data %>% 
+  mutate(unnormalized = likelihood * prior,
+         posterior = unnormalized / sum(unnormalized))
+grid_data %>% 
+  summarize(sum(unnormalized), sum(posterior))
+
+round(grid_data, 2) # Redondear a dos valores dsp de la coma
+
+```
+
+Ahora, al haber graficado para 201 casos, la aproximacion por grilla se aproxima de manera casi perfecta a la normal del posteriori que calculamos teoricamente. Al tener la variable discreta, pero ser la diferencia entre valores muy pequena, se aproxima en mayor proporcion a una normal.
+
+```{r}
+
+ggplot(grid_data, aes(x = mu_grid, y = posterior)) + 
+  geom_point() + 
+  geom_segment(aes(x = mu_grid, xend = mu_grid, y = 0, yend = posterior))+
+  scale_x_continuous(breaks = 5:15, labels = 5:15)
+```
+
+
+```{r, include=FALSE}
+set.seed(84735)
+post_sample <- sample_n(grid_data, size = 10000, 
+                        weight = posterior, replace = TRUE)
+
+post_sample %>% 
+  tabyl(mu_grid) %>% 
+  adorn_totals("row")
+```
+
+El muestreo a partir del posterior discreto produce datos cuya distribución prácticamente coincide con la densidad normal teórica del posterior, lo que sugiere que nuestra aproximación por grilla es adecuada para modelar $\u$
+
+```{r}
+ggplot(post_sample, aes(x = mu_grid)) + 
+  geom_histogram(aes(y = ..density..), color = "white") + 
+  stat_function(fun = dnorm, args = list(8.64, 0.57)) + 
+  lims(x = c(5, 15))
+```
+
+## Exercise 6.15 (MCMC with RStan: Gamma-Poisson)
+
+El primer paso que debemos hacer es definir el modelo. 
+Para ello utilizaremos la estructura base de stan: definir el recorrido de los datos, los parametros y por ultimo el modelo. 
+Para definir los datos  utilizaremos Y[3], que representa el vector de observaciones Y.          
+En los parametros usaremos lambda y lo definiremos en $\mathbb{R}^+$, dado que es el recorrido de cualquier distribucion poisson.
+Finalmente definimos la distribucion de Y y lambda, con el modelo gamma-poisson. Sabemos que los datos siguen una distribucion Poisson ($\lambda$) y que $\lambda$~Gamma(20,5)
+La definicion del modelo por ende es la siguiente:
+```{r, echo=TRUE}
+gp_model <- "
+  data {
+    int<lower=0> n; 
+    array[n] int<lower=0> Y;
+  }
+  parameters {
+    real<lower = 0 > lambda;
+  }
+  model {
+    Y ~ poisson (lambda);
+    lambda ~ gamma (20,5);
+  }
+"
+
+```
+
+El siguiente paso es utilizar la funcion stan para simular las cadenas:
+
+```{r}
+gp_sim <- stan(model_code = gp_model, data = list(Y = c(0,1,0)), 
+               chains = 4, iter = 10*2, seed = 84735)
+```
+
+Para hacer la traza de las cadenas utilizaremos la funcion mcmc_trace, que viene ya inclida en el paquete: 
+
+```{r}
+mcmc_trace(gp_sim, pars = "lambda", size = 0.1)
+
+```
+
+
+
+
