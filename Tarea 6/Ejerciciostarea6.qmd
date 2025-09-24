@@ -184,10 +184,10 @@ ggplot(post_sample, aes(x = mu_grid)) +
 El primer paso que debemos hacer es definir el modelo. Para ello utilizaremos la estructura base de stan: definir el recorrido de los datos, los parametros y por ultimo el modelo. Para definir los datos utilizaremos Y\[3\], que representa el vector de observaciones Y.\
 En los parametros usaremos lambda y lo definiremos en $\mathbb{R}^+$, dado que es el recorrido de cualquier distribucion poisson. Finalmente definimos la distribucion de Y y lambda, con el modelo gamma-poisson. Sabemos que los datos siguen una distribucion Poisson ($\lambda$) y que $\lambda$\~Gamma(20,5) La definicion del modelo por ende es la siguiente:
 
-```{r, echo=TRUE}
+```{r}
 gp_model <- "
   data {
-    array[3] int<lower=0> Y;
+   int<lower = 0, upper = 100> Y;
   }
   parameters {
     real<lower = 0 > lambda;
@@ -205,13 +205,12 @@ El siguiente paso es utilizar la funcion stan para simular las cadenas:
 # Esto no esta corriendo y ni se porque
 
 ```{r, eval=FALSE}
-stan_data <- list(
-  Y = c(0, 1, 0)
-)
+stan_data <- list(0, 1, 0)
 
-gp_sim <- stan(model_code = gp_model,
+
+gp_sim <-stan(model_code = gp_model,
                data = stan_data,
-               chains = 4,
+               chains = 1,
                iter = 10*2,   
                seed = 84735)
 
@@ -234,7 +233,7 @@ Tras analizar tal como se hace en el libro (reescribiendo y desestimando la cons
 
 $$
 \alpha = \min \left\{ 1, \frac{f(\mu' \mid y)}{f(\mu \mid y)} \right\}.
-$$ 
+$$
 
 Cuando $f(\mu' \mid y) > f(\mu \mid y)$ entonces el minimo es 1 y nos movemos a la nueva locacion.
 
@@ -284,8 +283,7 @@ one_mh_iteration(w = 0.5, current = 3)
 
 El proposal pertenece al intervalo determinado por current=3 $\pm$ w=
 
-En este caso, se acepto automaticamente, por lo que sabemos que $f(\mu' \mid y) > f(\mu \mid y)$. Como $\alpha$ es exactamente igual a 1 no hubo sorteo.Esto significa que el proposal mejora la plausibilidad respecto al valor anterior. 
-Por ende la cadena se movio automaticamente al nuevo valor.
+En este caso, se acepto automaticamente, por lo que sabemos que $f(\mu' \mid y) > f(\mu \mid y)$. Como $\alpha$ es exactamente igual a 1 no hubo sorteo.Esto significa que el proposal mejora la plausibilidad respecto al valor anterior. Por ende la cadena se movio automaticamente al nuevo valor.
 
 ### Parte c: w=1
 
@@ -293,23 +291,20 @@ Por ende la cadena se movio automaticamente al nuevo valor.
 one_mh_iteration(w = 1, current = 3)
 
 ```
-En este caso el valor propuesto salta a 2.897 y fue obtenido dentro del intervalo [2,4]
-En este caso, el valor es menos plausible que el actual, por lo que $\alpha$ es menor a 1 y se debe sortear. Se realiza dicho sorteo con probabilidad $\alpha$=0.7402203 y fue aceptado, por lo que el valor de la cadena se actualiza a $\u'$=2.897.
-En las pruebas que realizamos en clase, vimos que para este current, w=1 es un buen valor, que tiene un equilibrio dentro de estabilidad y avance en el recorrido. 
-Lo utilizaremos para comparar en el siguiente ejercicio. 
+
+En este caso el valor propuesto salta a 2.897 y fue obtenido dentro del intervalo \[2,4\] En este caso, el valor es menos plausible que el actual, por lo que $\alpha$ es menor a 1 y se debe sortear. Se realiza dicho sorteo con probabilidad $\alpha$=0.7402203 y fue aceptado, por lo que el valor de la cadena se actualiza a $\u'$=2.897. En las pruebas que realizamos en clase, vimos que para este current, w=1 es un buen valor, que tiene un equilibrio dentro de estabilidad y avance en el recorrido. Lo utilizaremos para comparar en el siguiente ejercicio.
 
 ### Parte D: w=3.
 
 ```{r}
 one_mh_iteration(w = 3, current = 3)
 ```
-En este caso el valor del proposal es 4.0474 y pertenece al intervalo 3 $\pm$ 3, es decir [0,6].
-En este caso $\alpha$=1, lo que significa que la plausibilidad (posterior en el nuevo punto) fue mayor o igual a la del punto actual(3). En este caso, la probabilidad de aceptación es 1 → siempre aceptamos la propuesta.
 
+En este caso el valor del proposal es 4.0474 y pertenece al intervalo 3 $\pm$ 3, es decir \[0,6\]. En este caso $\alpha$=1, lo que significa que la plausibilidad (posterior en el nuevo punto) fue mayor o igual a la del punto actual(3). En este caso, la probabilidad de aceptación es 1 → siempre aceptamos la propuesta.
 
 ## Ejercicio 7.10: (An entire tour with a Uniform proposal model)
 
-Modificaremos la funcion mh_tour de manera de hacerla mas universal. Para ello le pasaremos el valor de current al llamar la funcion y no dentro de ella, como se realizo en el ejercico en clase. De este modo, cada vez que llamemos a current debemos pasarle 3 datos: N=cantidad de iteraciones, w=ancho del intervalo para la uniforme y current=valor inicial. 
+Modificaremos la funcion mh_tour de manera de hacerla mas universal. Para ello le pasaremos el valor de current al llamar la funcion y no dentro de ella, como se realizo en el ejercico en clase. De este modo, cada vez que llamemos a current debemos pasarle 3 datos: N=cantidad de iteraciones, w=ancho del intervalo para la uniforme y current=valor inicial.
 
 ```{r}
 mh_tour <- function(N, w, current){
@@ -334,22 +329,21 @@ mh_tour <- function(N, w, current){
 }
 ```
 
-Por ejemplo, tal como vimos en clase, un buen valor para realizar las iteraciones es w=1 y un n suficientemente grande, por ejemplo n=5000, dado que la traza recorre los distintos valores plausibles para $\mu$, pero con mayor probabilidad los cercanos a 3, y al graficar el histograma nos aproximamos mucho a una normal. 
+Por ejemplo, tal como vimos en clase, un buen valor para realizar las iteraciones es w=1 y un n suficientemente grande, por ejemplo n=5000, dado que la traza recorre los distintos valores plausibles para $\mu$, pero con mayor probabilidad los cercanos a 3, y al graficar el histograma nos aproximamos mucho a una normal.
 
 ```{r}
 set.seed(84735) #Decidimos utilizar la misma semilla del libro. 
 mh_simulation_1 <- mh_tour(N = 5000, w = 1, current=3)
 ```
 
-De esta manera, el gráfico de traza mantendrá su mayor concentracion de ruido alrededor del $\mu$ teorico del posterior (4), oscilando y recorriendo distintos valores . Se observa que en ningun momento se estanca (no genera lineas constantes) y tanto para arriba como para abajo recorre el recorrido de $\mu$s posibles. Ademas aparenta ser estable, no tiene patron a crecer ni a achicarse. Tampoco se observan valores demasiado alejados ni saltos descontrolados. 
-
+De esta manera, el gráfico de traza mantendrá su mayor concentracion de ruido alrededor del $\mu$ teorico del posterior (4), oscilando y recorriendo distintos valores . Se observa que en ningun momento se estanca (no genera lineas constantes) y tanto para arriba como para abajo recorre el recorrido de $\mu$s posibles. Ademas aparenta ser estable, no tiene patron a crecer ni a achicarse. Tampoco se observan valores demasiado alejados ni saltos descontrolados.
 
 ```{r}
 ggplot(mh_simulation_1, aes(x = iteration, y = mu)) + 
   geom_line()
 ```
-Esta simulacion generara una muy similar a la normal calculada de manera teorica, por lo qjue decimos que el algoritmo ajusta bien a la posterior que queriamos calcular. 
-Por lo tanto, la simulación MCMC reproduce correctamente la forma de la distribución teórica.
+
+Esta simulacion generara una muy similar a la normal calculada de manera teorica, por lo qjue decimos que el algoritmo ajusta bien a la posterior que queriamos calcular. Por lo tanto, la simulación MCMC reproduce correctamente la forma de la distribución teórica.
 
 ```{r}
 ggplot(mh_simulation_1, aes(x = mu)) + 
@@ -358,11 +352,11 @@ ggplot(mh_simulation_1, aes(x = mu)) +
 
 ```
 
-### Parte A: 50 iterations, W=50. 
+### Parte A: 50 iterations, W=50.
 
-Al iterar 50 veces con un w tan grande, los valores posibles para la uniforme perteneceran a [-47,53]. Este intevalo es sumamente amplio si lo comparamos con la normal que estamos intentando muestrear. Esto generara que los valores de proposal esten muy dispersos respecto a 3, por ende al evaluar la funcion en proposal tendera a cero, haciendo muy probable que los $\alpha$ de cada iteracion sean muy pequenos y por ende la probabilidad de hacer el salto en el sorteo sea muy baja. Por ende, seria esperable ver pocos saltos de valor, es decir que nos costara salir del current inicial y a su vez nos costara salir del nuevo valor que tomemos. 
+Al iterar 50 veces con un w tan grande, los valores posibles para la uniforme perteneceran a \[-47,53\]. Este intevalo es sumamente amplio si lo comparamos con la normal que estamos intentando muestrear. Esto generara que los valores de proposal esten muy dispersos respecto a 3, por ende al evaluar la funcion en proposal tendera a cero, haciendo muy probable que los $\alpha$ de cada iteracion sean muy pequenos y por ende la probabilidad de hacer el salto en el sorteo sea muy baja. Por ende, seria esperable ver pocos saltos de valor, es decir que nos costara salir del current inicial y a su vez nos costara salir del nuevo valor que tomemos.
 
-Respecto al histograma, es de esperar tener pocos valores con muchas observaciones cada uno. 
+Respecto al histograma, es de esperar tener pocos valores con muchas observaciones cada uno.
 
 ```{r}
 mh_simulation_1 <- mh_tour(N = 50, w = 50, current=3)
@@ -373,8 +367,7 @@ ggplot(mh_simulation_1, aes(x = iteration, y = mu)) +
 
 El grafico de la traza muestra que se rechaza para los 8 primeros valores, es decir que los valores fueron menos plausibles y el sorteo fue negativo. En el caso del valor 9 lo acepta. Finalmente sigue rechazando durante toda la iteracion, habiendo quedado fijo en aproximadamente 3.3.
 
-Esto generara un histograma con dos barras, dado que la cadena tuvo solo dos valores: 3 (inicial) y 3.3, que fue el aceptado en el caso numero 9. 
-
+Esto generara un histograma con dos barras, dado que la cadena tuvo solo dos valores: 3 (inicial) y 3.3, que fue el aceptado en el caso numero 9.
 
 ```{r}
 ggplot(mh_simulation_1, aes(x = mu)) + 
@@ -384,33 +377,33 @@ ggplot(mh_simulation_1, aes(x = mu)) +
   coord_cartesian(xlim = c(2, 6), ylim = c(0, 30))
 
 ```
-Si bien el grafico a primera vista parece incorrecto, se ve raro por una cuestion de escala.
-Se observa correctamente graficada la normal que representa el posterior teorico. 
-A su vez, se generaron las dos columnas mencionadas antereiormente en el historgrama, las cuales son sumamente altas dado que se repitio mucas veces el 3 y el 3.3. 
-Es sumamente evidente que con n=50 y w=50, no se ajusta bien.
 
-### Parte c: Que pasa si agrandamos a n=10.000? 
+Si bien el grafico a primera vista parece incorrecto, se ve raro por una cuestion de escala. Se observa correctamente graficada la normal que representa el posterior teorico. A su vez, se generaron las dos columnas mencionadas antereiormente en el historgrama, las cuales son sumamente altas dado que se repitio mucas veces el 3 y el 3.3. Es sumamente evidente que con n=50 y w=50, no se ajusta bien.
 
-El grafico de traza en esta oportunidad: 
+### Parte c: Que pasa si agrandamos a n=10.000?
+
+El grafico de traza en esta oportunidad:
+
+```{=tex}
 \begin{itemize}
     \item Muestra muchas mesestas, lo que nos hace pensar en que se estanco varias veces en muchos valores. Un w tan grande genera que se tranque mucho la cadena, por el tema del sorteo, que ya mencionamos anteriormente, 
     \item Muestra varios saltos de valores bajos a altos y viceversa, lo que nos hace pensar que en alguno de los sorteos tuvimos exito a pesar de tener baja probabilidad de que esto ocurra. 
     \item Por lo tanto, a pesar de tener un w tan proporcionalmente grande, con \(n=10000\) logramos compensar parte del efecto de los estancamientos para poder ver todo el recorrido.
     \item Probablemente genere un histograma sesgado, o con columnas mas altas de lo que deberian en algunos valores.
 \end{itemize}
-
+```
 ```{r}
 mh_simulation_1 <- mh_tour(N = 10000, w = 50, current=3)
 
 ggplot(mh_simulation_1, aes(x = iteration, y = mu)) + 
   geom_line()
 ```
+
 En el histograma se observa que, a pesar de no usar el w ideal, logramos mejorar bastante la aproximacion a la normal. Si bien a la aproximacion le falta mucho para ser buena, empieza a verse reflejada la forma.
 
 Los valores mas extremos, empieza a verse reflejados de buena manera, acompasando la curva de la normal. En el centro se observa una serie de valores entorno a 4 que no lograron tener buena densidad.
 
-De este modo, podemos pensar que agrandando suficientemente la N, logramos compensar gran parte del efecto de haber elegido un w tan grande. 
-
+De este modo, podemos pensar que agrandando suficientemente la N, logramos compensar gran parte del efecto de haber elegido un w tan grande.
 
 ```{r}
 ggplot(mh_simulation_1, aes(x = mu)) + 
@@ -420,6 +413,7 @@ ggplot(mh_simulation_1, aes(x = mu)) +
   coord_cartesian(xlim = c(2, 6), ylim = c(0, 1))
 
 ```
+
 Si volvemos a repetir la simulacion, pero esta vez con n=50.000, logramos aproximar de mucha mejor manera la normal teorica del posterior.
 
 Aun no llega a ser perfecta, pero cada vez es mejor.
@@ -438,7 +432,7 @@ ggplot(mh_simulation_1, aes(x = mu)) +
 
 Computacionalmente podemos verlo como que estamos sacrificando eficiencia a cambio de haber elegido mal los parametros. Se muestra que con un tamaño de muestra suficientemente grande podemos compensar un tuning ineficiente, aunque a costa de un uso mucho mayor de recursos computacionales. Se intento volver a reproducir con n=500.000, pero la computadora no tuvo capacidad de soportarlo.
 
-Por lo tanto, no todo tuning ineficiente sera compensable. 
+Por lo tanto, no todo tuning ineficiente sera compensable.
 
 ```{r}
 mh_simulation_1 <- mh_tour(N = 50000, w = 5000, current=3)
@@ -454,6 +448,4 @@ ggplot(mh_simulation_1, aes(x = mu)) +
 
 Como prueba de que no todo tuning eficiente sera compensable, si hubieramos elegido un w considerablemente peor que 50, por ejemplo 5000, el efecto de n no alcanza para arreglarlo. La grafica se parece al ejemplo inicial de w=50 y n=50, donde le cuesta muchisimo salir de cada valor. Necesitariamos un n inmensamente superior para compensarlo, lo que computacionalmente no siemrpe sera viable.
 
-De esta manera, concluimos que es mas eficaz mejorar el w antes que seguir agrandando la simulacion. 
-
-
+De esta manera, concluimos que es mas eficaz mejorar el w antes que seguir agrandando la simulacion.
