@@ -505,11 +505,11 @@ hist5050 <- ggplot(mh_simulation_1, aes(x = mu)) +
 traza5050+hist5050
 ```
 
-El gráfico de la traza muestra que se rechaza para los 8 primeros valores, es decir que los valores fueron menos plausibles y el sorteo fue negativo. En el caso del valor 9 lo acepta. Finalmente sigue rechazando durante toda la iteración, habiendo quedado fijo en aproximadamente 3.3.
+El gráfico de la traza muestra que se rechaza para los 6 primeros valores, es decir que los valores fueron menos plausibles y el sorteo fue negativo. En el caso del valor 6 lo acepta. Luego, sigue rechazando hasta llegar al valor 26, donde vuelve a aceptar. Después rechaza hasta llegar al 35, donde allí acepta, y finalmente se mantiene constante. 
 
-Esto generara un histograma con dos barras, dado que la cadena tuvo solo dos valores: 3 (inicial) y 3.3, que fue el aceptado en el caso numero 9.
+Esto generara un histograma con cuatro barras, dado que la cadena tuvo solo 4 valores: 3, 3.8, 4.6 y 5.1, siendo estos los valores aceptados en distintos momentos.
 
-Se observa correctamente graficada la normal que representa el posterior teórico. A su vez, se generaron las dos columnas mencionadas antereiormente en el historgrama, las cuales son sumamente altas dado que se repitió mucas veces el 3 y el 3.3. Es sumamente evidente que con n=50 y w=50, no se ajusta bien.
+Se observa correctamente graficada la normal que representa el posterior teórico. A su vez, se generaron las cuatrp barras mencionadas antereiormente en el historgrama, las cuales son sumamente altas dado que se repitieron muchas veces estos valores. Es sumamente evidente que con n=50 y w=50, no se ajusta bien.
 
 ### Parte B: 50 iterations, W=0.01.
 
@@ -561,7 +561,7 @@ traza100050+hist100050
 
 En el histograma se observa que, a pesar de no usar el w ideal, logramos mejorar bastante la aproximación a la normal. Y si bien le falta mucho para ser buena, empieza a verse reflejada la forma. En el centro se observa una serie de valores entorno a 4 que no lograron tener buena densidad.
 
-El gráfico de traza en esta oportunidad muestra muchas mesestas, lo que nos hace pensar en que se estancó varias veces en muchos valores. Un w tan grande genera que se tranque mucho la cadena, por el tema del sorteo, que ya mencionamos anteriormente. Por otro lado, muestra varios saltos de valores bajos a altos y viceversa, lo que nos hace pensar que en alguno de los sorteos tuvimos éxito a pesar de tener baja probabilidad de que esto ocurra.vPor lo tanto, a pesar de tener un w tan proporcionalmente grande, con $(n=1000)$ logramos compensar parte del efecto de los estancamientos para poder ver todo el recorrido. Probablemente genere un histograma sesgado, o con columnas mas altas de lo que deberían en algunos valores.
+El gráfico de traza en esta oportunidad muestra muchas mesetas, lo que nos hace pensar en que se estancó varias veces en muchos valores. Un w tan grande genera que se tranque mucho la cadena, por el tema del sorteo, que ya mencionamos anteriormente. Por otro lado, muestra varios saltos de valores bajos a altos y viceversa, lo que nos hace pensar que en alguno de los sorteos tuvimos éxito a pesar de tener baja probabilidad de que esto ocurra.vPor lo tanto, a pesar de tener un w tan proporcionalmente grande, con $(n=1000)$ logramos compensar parte del efecto de los estancamientos para poder ver todo el recorrido. Probablemente genere un histograma sesgado, o con columnas mas altas de lo que deberían en algunos valores.
 
 Entonces, podemos llegar a pensar que agrandando suficientemente la N, logramos compensar gran parte del efecto de haber elegido un w tan grande.
 
