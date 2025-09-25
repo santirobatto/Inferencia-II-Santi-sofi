@@ -14,14 +14,23 @@ execute:
 
 ## Exercise 6.7 (Normal-Normal grid approximation)
 
+![](fotoconsigna6.7.png)
+
+## Respuestas:
+
+Este ejercicio busca que realicemos una aproximacion por grilla para una distribución a posteriori. Lo que tenemos que hacer es convertir un problema del mundo continuo a uno discreto, más simple. Para lograr esto, realizaremos los siguientes pasos: 1. Definir el rango de parámetros en una grilla de puntos. 2. Calcular la plausibilidad posteriori en cada punto. 3. Normalizar para convertir esas plausibilidades en probabilidades. 4. Hacer un muestreo de esos puntos según sus probabilidades.
+
 ### Parte A:
 
 ```{r}
 library(janitor)
 library(tidyverse)
 library(rstan)
+library(kableExtra)
 library(ggplot2)
 library(bayesrules)
+library(bayesplot)
+library(patchwork)
 theme_set(
   theme_minimal() +
     theme(
@@ -37,7 +46,16 @@ Como primer paso definimos la grilla de valores posibles de $\mu$, entre 5 y 15 
 ```{r}
 # Paso 1: Definimos la grilla 
 grid_data <- data.frame(mu_grid = seq(from = 5, to = 15, by=1))
-grid_data$mu_grid
+mugrid <- grid_data$mu_grid
+```
+
+```{r, fig.align='center'}
+kable(t(mugrid), 
+      digits = 1, 
+      caption = "Valores de mu en la grilla",
+      col.names = NA)%>%
+  kable_styling(bootstrap_options = c("striped", "hover"), #apariencia de la tabla
+                full_width = FALSE) 
 ```
 
 Para cada valor de $\mu$ evaluaremos el prior y la verosimilitud.
@@ -46,62 +64,89 @@ Para el prior utilizaremos el dato de letra que $\mu \sim \mathcal{N}(10, 1.2^2)
 
 A su vez, creamos un vector con el valor de las observaciones $(Y_1, Y_2, Y_3, Y_4) = (7.1,\; 8.9,\; 8.4,\; 8.6)$ para poder hallar la verosimilitud.
 
-```{r}
+```{r, include=FALSE}
 y <- c(7.1, 8.9, 8.4, 8.6)
 grid_data <- grid_data %>% 
   mutate(prior = dnorm (mu_grid, 10, 1.2), 
    likelihood = sapply(mu_grid, function(mu) {
-      prod(dnorm(y, mean = mu, sd = 1.3)) #El sapply es para recorrer todos los valores de mu_grid con la funcion que recorre todo el recorrido y hace el producto. Se hace el producto de verosimilitudes dado que son V.A independientes.
+      prod(dnorm(y, mean = mu, sd = 1.3)) #El sapply es para recorrer todos los valores de mu_grid con la función que recorre todo el recorrido y hace el producto. Se hace el producto de verosimilitudes dado que son V.A independientes.
     })
   )
 grid_data
 ```
+```{r, include=FALSE}
+datosgridd <- head(grid_data)
+```
 
-Finalmente ya podemos aproximar el posterior, haciendo el producto de likelihood x prior y dividiendo entre su suma. Hacer el cociente lo que hace es asegurarnos de obtener una probabilidad, dado que estamos normalizando la funcion.
+```{r, fig.align='center'}
+kable(datosgridd, 
+      digits = 12, 
+      caption = "Primeros 6 datos de Grid Data")%>%
+  kable_styling(bootstrap_options = c("striped", "hover"), #apariencia de la tabla
+                full_width = FALSE) 
+```
+
+Finalmente ya podemos aproximar el posterior, haciendo el producto de la verosimilitud con la priori y dividiendo entre su suma. Hacer el cociente lo que hace es asegurarnos de obtener una probabilidad, dado que estamos normalizando la función.
 
 $$
 p(\mu_j\mid y)=\frac{p(y\mid\mu_j)\,p(\mu_j)}{\displaystyle\sum_{k} p(y\mid\mu_k)\,p(\mu_k)}
 $$
 
-```{r}
-grid_data <- grid_data %>% 
+```{r, include=FALSE}
+grid_data2 <- grid_data %>% 
   mutate(unnormalized = likelihood * prior,
          posterior = unnormalized / sum(unnormalized))
-grid_data
+grid_data2
+datosgridd2 <- head(grid_data2)
 ```
 
-El siguiente paso es solo un checkeo que haya funcionado bien todo. El hecho de que la suma de la variable posterior sume 1 nos asegura que esta efectivamente es una probabilidad.
+```{r, fig.align='center'}
+kable(datosgridd2, 
+      digits = 12, 
+      caption = "Primeros 6 datos de Grid Data Actualizada (con posteriori)")%>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+``` 
 
-```{r}
-grid_data %>% 
+El siguiente paso se realiza sólo para verificar que todo esté funcionando bien. El hecho de que la suma de la variable posterior sume 1 nos asegura que esta efectivamente sea una probabilidad.
+
+```{r, fig.align='center'}
+grid_data2 %>% 
   summarize(sum(unnormalized), sum(posterior))
-# Examine the grid approximated posterior
-
+# Examinar la posteriori aproximada de la grilla.
 ```
 
-Graficamos el posterior obtenido en grid data, el cual nos devolvera los valores mas probables de $\mu$. De esta manera, a partir de un priori normal (continuo) y 4 observaciones, generamos una distribucion a posteriori discreta para $\mu$. Los valores mas probables son 8 y 9, pero al usar solo 10 valores para modelar $\mu$ perdimos mucha precision. Es por ello que repetiremos el experimento en la parte b, pero usando 201 valores posibles para $\mu$.
+Graficamos el posterior obtenido en grid data, el cual nos va a devolver los valores más probables de $\mu$. De esta manera, a partir de un priori normal (continuo) y 4 observaciones, generamos una distribución a posteriori discreta para $\mu$. Los valores mas probables son 8 y 9, pero al usar solo 10 valores para modelar $\mu$ perdimos mucha precisión. Es por ello que repetiremos el experimento en la parte b, pero usando 201 valores posibles para $\mu$.
 
-```{r}
-ggplot(grid_data, aes(x = mu_grid, y = posterior)) + 
+```{r, fig.align='center'}
+ggplot(grid_data2, aes(x = mu_grid, y = posterior)) + 
   geom_point() + 
   geom_segment(aes(x = mu_grid, xend = mu_grid, y = 0, yend = posterior))+
-  scale_x_continuous(breaks = 5:15, labels = 5:15)
+  scale_x_continuous(breaks = 5:15, labels = 5:15)+
+  labs(title = "Grid Data")
 
 ```
 
-Ademas, podemos samplear a partir de lo obtenido anteriormente y compararlo contra el posterior real:
+Además, podemos realizar un muestreo a partir de lo obtenido anteriormente y compararlo contra el posterior real:
 
-```{r}
-summarize_normal_normal(10, 1.2, 1.3, mean(c(7.1, 8.9, 8.4, 8.6)), 4)
+```{r, include=FALSE}
+resumen <- summarize_normal_normal(10, 1.2, 1.3, mean(c(7.1, 8.9, 8.4, 8.6)), 4)
 ```
 
-Por ende sabemos que el posterior teorico del ejemplo distribuye $\mu \sim \mathcal{N}(8.64698, 0.571^2)$
+```{r, fig.align='center'}
+kable(resumen, 
+      digits = 4, 
+      caption = "Medidas de resumen Normal-Normal") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), #apariencia de la tabla
+                full_width = FALSE) 
+```
 
-Para el sampleo:
+Por ende sabemos que el posterior teórico del ejemplo distribuye $\mu \sim \mathcal{N}(8.64698, 0.571^2)$
 
-```{r}
+Para el muestreo:
+
+```{r, fig.align='center'}
 set.seed(84735)
-post_sample <- sample_n(grid_data, size = 10000, 
+post_sample <- sample_n(grid_data2, size = 10000, 
                         weight = posterior, replace = TRUE)
 post_sample %>% 
   tabyl(mu_grid) %>% 
@@ -109,26 +154,26 @@ post_sample %>%
 
 
 
-ggplot(grid_data, aes(x = mu_grid, y = posterior)) +
+ggplot(grid_data2, aes(x = mu_grid, y = posterior)) +
   geom_col() +
   stat_function(fun = dnorm,
                 args = list(mean = 8.64, sd = 0.57),
                 color = "red") +
   labs(x = expression(mu), y = "Posterior") +
   theme_minimal()+
-  scale_x_continuous(breaks = 5:15, labels = 5:15)
+  scale_x_continuous(breaks = 5:15, labels = 5:15)+
+  labs(title = "Histograma de aproximación por grilla + posteriori real")
 ```
 
-De esta manera vemos que el histograma de aproximacion por grilla es sumamente similar al posterior real.
+De esta manera vemos que el histograma de aproximación por grilla es sumamente similar al posterior real.
 
-Sin embargo, como ya vimos antes, al haber elegido pocos valores posibles para $\mu$ la aproximacion no es precisa.
+Sin embargo, como ya vimos antes, al haber elegido pocos valores posibles para $\mu$ la aproximación no es precisa.
 
 ### Parte B:
 
-Replicaremos el codigo realizado en la parte anterior, con la unica diferencia que la secuencia para valores de $\mu$ sera de a 0.05 en vez de a 1.
+Replicaremos el código realizado en la parte anterior, con la única diferencia que la secuencia para valores de $\mu$ será de a 0.05 en vez de a 1.
 
 ```{r, include=FALSE }
-# Paso 1: Definimos la grilla 
 grid_data <- data.frame(mu_grid = seq(from = 5, to = 15, length=201))
 ```
 
@@ -146,18 +191,19 @@ grid_data <- grid_data %>%
 grid_data %>% 
   summarize(sum(unnormalized), sum(posterior))
 
-round(grid_data, 2) # Redondear a dos valores dsp de la coma
+round(grid_data, 2) # Redondear a dos valores desp de la coma
 
 ```
 
-Ahora, al haber graficado para 201 casos, la aproximacion por grilla se aproxima de manera casi perfecta a la normal del posteriori que calculamos teoricamente. Al tener la variable discreta, pero ser la diferencia entre valores muy pequena, se aproxima en mayor proporcion a una normal.
+Ahora, al haber graficado para 201 casos, la aproximación por grilla se asemeja de manera casi perfecta a la normal del posteriori que calculamos teóricamente. Al tener la variable discreta, pero ser la diferencia entre los valores muy pequeña, se aproxima en mayor proporción a una normal.
 
-```{r}
+```{r, fig.align='center'}
 
 ggplot(grid_data, aes(x = mu_grid, y = posterior)) + 
   geom_point() + 
   geom_segment(aes(x = mu_grid, xend = mu_grid, y = 0, yend = posterior))+
-  scale_x_continuous(breaks = 5:15, labels = 5:15)
+  scale_x_continuous(breaks = 5:15, labels = 5:15)+
+  labs(title = "Aproximación por grilla")
 ```
 
 ```{r, include=FALSE}
@@ -170,89 +216,168 @@ post_sample %>%
   adorn_totals("row")
 ```
 
-El muestreo a partir del posterior discreto produce datos cuya distribución prácticamente coincide con la densidad normal teórica del posterior, lo que sugiere que nuestra aproximación por grilla es adecuada para modelar $\u$
+El muestreo a partir del posterior discreto produce datos cuya distribución prácticamente coincide con la densidad normal teórica del posterior, lo que sugiere que nuestra aproximación por grilla es adecuada para modelar $\mu$
 
-```{r}
+```{r, fig.align='center'}
 ggplot(post_sample, aes(x = mu_grid)) + 
   geom_histogram(aes(y = ..density..), color = "white") + 
   stat_function(fun = dnorm, args = list(8.64, 0.57)) + 
-  lims(x = c(5, 15))
+  lims(x = c(5, 15))+
+  labs(title = "Muestreo a partir del posterior discreto")
 ```
+\newpage
 
 ## Exercise 6.15 (MCMC with RStan: Gamma-Poisson)
 
-El primer paso que debemos hacer es definir el modelo. Para ello utilizaremos la estructura base de stan: definir el recorrido de los datos, los parametros y por ultimo el modelo. Para definir los datos utilizaremos Y\[3\], que representa el vector de observaciones Y.\
-En los parametros usaremos lambda y lo definiremos en $\mathbb{R}^+$, dado que es el recorrido de cualquier distribucion poisson. Finalmente definimos la distribucion de Y y lambda, con el modelo gamma-poisson. Sabemos que los datos siguen una distribucion Poisson ($\lambda$) y que $\lambda$\~Gamma(20,5) La definicion del modelo por ende es la siguiente:
+![](fotoconsigna6.15.png)
 
-```{r}
+## Respuestas:
+Ahora trabajamos con un modelo más complejo, donde sería difícil calcular la distribución a posteriori de forma directa. Por eso recurrimos a las Caddenas de Markov Monte Carlo (MCMC). Esta técnica computacional permite aproximar distribuciones mediante la generación de una cadena de muestras aleatorias, que, una vez estabilizada, converge a la distribución posteriori que estamos buscando. Para realizar esto utilizamos RStan, que nos permite utilizar herramientas de Stan en R.
+
+El primer paso que debemos hacer es definir el modelo. Para ello utilizaremos la estructura base de Stan: definir el recorrido de los datos, los parámetros y por último el modelo. Para definir los datos utilizaremos $(Y_1,Y_2,Y_3)=(0,1,0)$, que representa el vector de observaciones $Y$. En los parametros usaremos $\lambda$ y lo definiremos en $\mathbb{R}^+$, dado que es el recorrido de cualquier distribución poisson. Finalmente definiremos la distribución de $Y$ y $\lambda$, con el modelo gamma-poisson. Sabemos que los datos siguen una distribución Poisson ($\lambda$) y que $\lambda \sim \text{Gamma}(20, 5)$. La definición del modelo por ende es la siguiente:
+
+```{r, echo=TRUE}
+y <- c(0,1,0)
 gp_model <- "
   data {
-   int<lower = 0, upper = 100> Y;
+   int<lower = 0> N;
+   array[N] int<lower=0> Y;
   }
   parameters {
     real<lower = 0 > lambda;
   }
   model {
-    Y ~ poisson (lambda);
     lambda ~ gamma (20,5);
+    Y ~ poisson (lambda);
   }
 "
+```
+
+El siguiente paso es utilizar la función stan para simular las 4 cadenas:
+
+```{r, include=FALSE}
+y <- c(0,1,0)
+
+gp_sim <-stan(
+  model_code = gp_model,
+  data = list(N = length(y), Y=y),
+  chains = 4,
+  iter = 5000*2,   
+  seed = 84735)
 
 ```
 
-El siguiente paso es utilizar la funcion stan para simular las cadenas:
+Se observa que se va haciendo la simulación de cada una, indicando el total de iteraciones realizadas y el tiempo que llevó completar la simulación. Cabe destacar que cuantas más cadenas simulemos, más tiempo va a tardar. Es un algoritmo "costoso" en términos de recursos y tiempo.
 
-# Esto no esta corriendo y ni se porque
+Utilizamos las funciones mcmc_trace para graficar la traza, densoverlay para ver todas las densidades superpuestas, mcmc_hist para calcular el histograma y mcmc_dens para calcular la función de densidad.
 
-```{r, eval=FALSE}
-stan_data <- list(0, 1, 0)
+A continuación observamos los resultados de la simulación:
 
+```{r, fig.width=12, fig.height=8, fig.align='center'}
+traza <- mcmc_trace(gp_sim, pars = "lambda", size = 0.1)
 
-gp_sim <-stan(model_code = gp_model,
-               data = stan_data,
-               chains = 1,
-               iter = 10*2,   
-               seed = 84735)
+densoverlay <- mcmc_dens_overlay(gp_sim, pars = "lambda") + 
+  ylab("density")
 
+hist <- mcmc_hist(gp_sim, pars = "lambda") + 
+  yaxis_text(TRUE) + 
+  ylab("density")
 
+dens <- mcmc_dens(gp_sim, pars = "lambda") + 
+  yaxis_text(TRUE) + 
+  ylab("density")
+
+(traza + densoverlay) / (hist + dens)
+```
+Obtuvimos una gráfica que muestra las distintas trazas de nuestras cadenas, otra que muestra sus densidades, un histograma y una función de densidad de todo lo simulado.
+
+Observamos que la simulación convergió correctamente. Las trazas oscilan de forma estable. Asimismo, es casi imposible distinguir las cadenas, ya que están todas superpuestas. Esto es lo que buscamos, es ideal, ya que todas las cadenas independientes nos dan resultados parecidos, a pesar de haber empezado de puntos diferentes, esto es naturaleza bayesiana en su escencia.
+
+Ahora observemos más detalladamente las densidades de las distintas cadenas:
+```{r, fig.align='center'}
+ mcmc_dens_chains(gp_sim, pars = "lambda") + 
+  ylab("density") +
+  labs(title = "Densidades de las cuatro cadenas")
+```
+Las cuatro gráficas de densidad estan casi perfectamente superpuestas. Esto confirma lo que vimos en el gráfico de las trazas. La distribución final es casi igual para las cuatro cadenas. Analizando el gráfico concluimos que el valor más plausible de $\lambda$ es aproximadamente 2.5.
+
+Finalmente, vamos a comparar la densidad simulada con la teórica, vamos a analizar una distribución Gamma.
+
+Nuestro modelo inicial es $\text{Gamma}(\alpha, \beta)$. Al observar $n$ datos con una suma de $\sum_{i=1}^{n} Y_i$, obtenemos el posterior:
+$$
+\lambda \mid Y \sim \text{Gamma}\left(\alpha + \sum_{i=1}^{n} Y_i, \beta + n\right)
+$$
+
+Aplicando esto a nuestros datos obtenemos:
+$\text{Gamma}(20, 5) \implies \alpha = 20, \beta = 5$
+$0, 1, 0) \implies n = 3$ y $\sum Y_i = 0 + 1 + 0 = 1$
+
+Ahora sustituimos en la fórmula:
+$\alpha' = 20 + 1 = 21$
+$\beta' = 5 + 3 = 8$
+
+Obtenemos que la distribución teórica de $\lambda$ es $\text{Gamma}(21, 8)$.
+Ahora la graficamos junto con lo que obtuvimos antes:
+
+```{r, fig.align='center'}
+
+mcmc_dens_overlay(gp_sim, pars = "lambda") +
+  #Curva teórica de la Gamma(21, 8) usando stat_function()
+  stat_function(
+    fun = dgamma, #Función para densidad gamma
+    args = list(shape = 21, rate = 8),
+    color = "red",
+    linetype = "dashed", #para diferenciarla
+    linewidth = 1
+  ) +
+  labs(
+    title = "Comparación: Aproximación MCMC vs. Posterior Teórico",
+    subtitle = "La curva roja punteada es la densidad teórica: Gamma(21, 8)"
+  )
 ```
 
-Para hacer la traza de las cadenas utilizaremos la funcion mcmc_trace, que viene ya inclida en el paquete:
+Observamos que el valor más plausible de $\lambda$ también se encuentra en torno al 2.5.
+Esto significa que nuestra simulación MCMC funcionó correctamente, se acercó extremadamente bien a la distribución teórica. Esta aproximación es muy potente y muy acertada.
 
-```{r, eval=FALSE}
-mcmc_trace(gp_sim, pars = "lambda", size = 0.1)
-```
+\newpage
 
 ## Exercise 7.9: One iteration with a Uniform proposal model
 
-Utilizaremos un algoritmo de Metropolis Hastings para realizar la iteracion. En este caso particular, dado que tomaremos un proposal simetrico, el algoritmo tiene otro nombre y se denomina Metropolis alghortim.
+![](fotoconsigna7.9.png)
 
-Este algorito tiene propiedades que simplifican las reglas de aceptacion de moverse o no a la nueva locacion propuesta de $\mu$.
+Utilizaremos un algoritmo de Metropolis Hastings para realizar la iteración. En este caso particular, dado que tomaremos un proposal simétrico, el algoritmo tiene otro nombre y se denomina Metropolis algorithm.
 
-Tras analizar tal como se hace en el libro (reescribiendo y desestimando la constante de normalizacion), la regla de decision se simplifica a comparar si el posterior evaluado en $\mu$ es mayor que en $\mu'$.
+Este algorito tiene propiedades que simplifican las reglas de aceptación de moverse o no a la nueva ubicación (location) propuesta de $\mu$.
+
+Tras analizar tal como se hace en el libro (reescribiendo y desestimando la constante de normalización), la regla de decisión se simplifica a comparar si el posterior evaluado en $\mu$ es mayor que en $\mu'$.
 
 $$
 \alpha = \min \left\{ 1, \frac{f(\mu' \mid y)}{f(\mu \mid y)} \right\}.
 $$
 
-Cuando $f(\mu' \mid y) > f(\mu \mid y)$ entonces el minimo es 1 y nos movemos a la nueva locacion.
+Cuando $f(\mu' \mid y) > f(\mu \mid y)$ entonces el mínimo es 1 y nos movemos a la nueva ubicación.
 
-Cuando $f(\mu' \mid y) < f(\mu \mid y)$ podriamos aceptarlo o no, y eso lo desarrollaremos en el algoritmo con un sorteo aleatorio con probabilidad $\alpha$ de aceptacion y su opuesto de rechazar.
+Cuando $f(\mu' \mid y) < f(\mu \mid y)$ podríamos aceptarlo o no, y eso lo desarrollaremos en el algoritmo con un sorteo aleatorio con probabilidad $\alpha$ de aceptación y su opuesto de rechazo.
 
-```{r}
+```{r, echo=TRUE}
 set.seed(1)
 one_mh_iteration <- function(w, current){
-#Propomemos la nueva ubicacion en base a la ubicacion actual y w. W funciona como el ancho del intervalo
+  #Propomemos la nueva ubicación en base a la ubicaciónn actual y w. 
+  #W funciona como el ancho del intervalo
   proposal <- runif(1, min = current - w, max = current + w)
   
-  #Definimos la regla de decision para evaluar si movernos o no.
+  #Definimos la regla de decisión para evaluar si movernos o no.
   #Primero calculamos la plausibilidad del proposal y del actual. 
   
   proposal_plaus <- dnorm(proposal, 0, 1) * dnorm(6.25, proposal, 0.75)
   current_plaus  <- dnorm(current, 0, 1) * dnorm(6.25, current, 0.75)
   #Calculamos el alhpa definido anteriormente
   alpha <- min(1, proposal_plaus / current_plaus)
-  #Calculamos la siguiente parada  haciendo un sorteo aleatorios utilizando las  probablidades anteriormente. Podriamos pensar las probabilidades como las caras de una moneda desigual. Con probablidad alpjha nos movemos y con probabilidad 1-alpha nos quedamos donde estabamos. 
+  #Calculamos la siguiente parada  haciendo un sorteo aleatorio, 
+  #utilizando las  probablidades anteriormente. 
+  #Podriamos pensar las probabilidades como las caras de una moneda cargada. 
+  #Con probablidad alpha nos movemos.
+  #con probabilidad 1-alpha nos quedamos donde estabamos. 
   next_stop <- sample(c(proposal, current), 
                       size = 1, prob = c(alpha, 1-alpha))
   
@@ -263,61 +388,65 @@ one_mh_iteration <- function(w, current){
 
 ### Parte a: W=0.01
 
-```{r}
+```{r, fig.align='center'}
 one_mh_iteration(w = 0.01, current = 3)
 ```
 
-En primer lugar, como w es muy pequeno (0.01), los valores del proposal estan entre 2.99 y 3.01. El nuevo proposal pertenece al intervalo, lo que es correcto.
+En primer lugar, como $w$ es muy pequeño (0.01), los valores del proposal estan entre 2.99 y 3.01. El nuevo proposal pertenece al intervalo, lo que es correcto.
 
-$\alpha$, la probabilidad de aceptacion del nuevo proposal, es casi 1. Por ende muy probablemente aceptaremos el valor propuesto. Es la probabilidad que le cargaremos al sorteo aleatorio.
+$\alpha$, la probabilidad de aceptación del nuevo proposal, es casi 1. Por ende muy probablemente aceptaremos el valor propuesto. Es la probabilidad que le cargaremos al sorteo aleatorio.
 
-Como era muy probable, aceptamos la nueva locacion para el proposal propuesto. Por ende next_stop es igual al proposal.
+Como era muy probable, aceptamos la nueva ubicación (location) para el proposal dado. Por ende next_stop es igual al proposal.
 
-Con un w tan chiquito casi siempre aceptaremos el proposal, pero a cambio daremos pasos muy pequenos, recorreremos el recorrido de manera muy lenta.
+Con un $w$ tan bajo casi siempre aceptaremos el proposal, pero a cambio daremos pasos muy pequeños, recorreremos los valores del recorrido de manera muy lenta.
 
 ### Parte B: W=0.5
 
-```{r}
+```{r, fig.align='center'}
 one_mh_iteration(w = 0.5, current = 3)
 ```
 
-El proposal pertenece al intervalo determinado por current=3 $\pm$ w=
+El proposal pertenece al intervalo determinado por $current=3$ $\pm$ $w = 0.5$
 
-En este caso, se acepto automaticamente, por lo que sabemos que $f(\mu' \mid y) > f(\mu \mid y)$. Como $\alpha$ es exactamente igual a 1 no hubo sorteo.Esto significa que el proposal mejora la plausibilidad respecto al valor anterior. Por ende la cadena se movio automaticamente al nuevo valor.
+En este caso, se aceptó automaticamente, por lo que sabemos que $f(\mu' \mid y) > f(\mu \mid y)$. Como $\alpha$ es exactamente igual a 1 no hubo sorteo. Esto significa que el proposal mejora la plausibilidad respecto al valor anterior. Por ende la cadena se movió automaticamente al nuevo valor.
 
 ### Parte c: w=1
 
-```{r}
+```{r, fig.align='center'}
 one_mh_iteration(w = 1, current = 3)
 
 ```
 
-En este caso el valor propuesto salta a 2.897 y fue obtenido dentro del intervalo \[2,4\] En este caso, el valor es menos plausible que el actual, por lo que $\alpha$ es menor a 1 y se debe sortear. Se realiza dicho sorteo con probabilidad $\alpha$=0.7402203 y fue aceptado, por lo que el valor de la cadena se actualiza a $\u'$=2.897. En las pruebas que realizamos en clase, vimos que para este current, w=1 es un buen valor, que tiene un equilibrio dentro de estabilidad y avance en el recorrido. Lo utilizaremos para comparar en el siguiente ejercicio.
+En este caso el valor propuesto salta a 2.897 y fue obtenido dentro del intervalo $[2,4]$ En este caso, el valor es menos plausible que el actual, por lo que $\alpha$ es menor a 1 y se debe sortear. Se realiza dicho sorteo con probabilidad $\alpha=0.7402203$ y fue aceptado, por lo que el valor de la cadena se actualiza a $\mu'=2.897$. En las pruebas que realizamos en clase, vimos que para este current, $w=1$ es un buen valor, que tiene un equilibrio dentro de estabilidad y avance en el recorrido. Lo utilizaremos para comparar en el siguiente ejercicio.
 
 ### Parte D: w=3.
 
-```{r}
+```{r, fig.align='center'}
 one_mh_iteration(w = 3, current = 3)
 ```
 
-En este caso el valor del proposal es 4.0474 y pertenece al intervalo 3 $\pm$ 3, es decir \[0,6\]. En este caso $\alpha$=1, lo que significa que la plausibilidad (posterior en el nuevo punto) fue mayor o igual a la del punto actual(3). En este caso, la probabilidad de aceptación es 1 → siempre aceptamos la propuesta.
+En este caso el valor del proposal es 4.0474 y pertenece al intervalo $3 \pm 3$, es decir $[0,6]$. En este caso $\alpha=1$, lo que significa que la plausibilidad (posterior en el nuevo punto) fue mayor o igual a la del punto actual(3). En este caso, la probabilidad de aceptación es 1, por lo tanto, siempre aceptamos la propuesta.
+
+\newpage
 
 ## Ejercicio 7.10: (An entire tour with a Uniform proposal model)
 
-Modificaremos la funcion mh_tour de manera de hacerla mas universal. Para ello le pasaremos el valor de current al llamar la funcion y no dentro de ella, como se realizo en el ejercico en clase. De este modo, cada vez que llamemos a current debemos pasarle 3 datos: N=cantidad de iteraciones, w=ancho del intervalo para la uniforme y current=valor inicial.
+![](consigna7.10.png)
 
-```{r}
+Modificaremos la función mh_tour de manera de hacerla más universal. Para ello le pasaremos el valor de current al llamar la función y no dentro de ella, como se realizó en el ejercico en clase. De este modo, cada vez que llamemos a current debemos pasarle 3 datos: N = cantidad de iteraciones, w = ancho del intervalo para la uniforme y current = valor inicial.
+
+```{r, echo=TRUE}
 mh_tour <- function(N, w, current){
-  # Inicializamos la simulacion, creando un vector de ceros de tamano N. 
+  # Inicializamos la simulacion, creando un vector de ceros de tamaño N. 
   mu <- rep(0, N)
   
 #Simulamos N veces en la cadena. 
   
   for(i in 1:N){    
-    # Simulamos una iteracion con la funcion que definimos antes.
+    # Simulamos una iteración con la función que definimos antes.
     sim <- one_mh_iteration(w = w, current = current)
     
-    #Avanzar a la siguiente locacion.
+    #Avanzar a la siguiente ubicación.
     mu[i] <- sim$next_stop
     
     #Reseteamos el valor de current para volver a iterar.
@@ -331,121 +460,192 @@ mh_tour <- function(N, w, current){
 
 Por ejemplo, tal como vimos en clase, un buen valor para realizar las iteraciones es w=1 y un n suficientemente grande, por ejemplo n=5000, dado que la traza recorre los distintos valores plausibles para $\mu$, pero con mayor probabilidad los cercanos a 3, y al graficar el histograma nos aproximamos mucho a una normal.
 
-```{r}
+```{r, echo=TRUE}
 set.seed(84735) #Decidimos utilizar la misma semilla del libro. 
 mh_simulation_1 <- mh_tour(N = 5000, w = 1, current=3)
 ```
 
-De esta manera, el gráfico de traza mantendrá su mayor concentracion de ruido alrededor del $\mu$ teorico del posterior (4), oscilando y recorriendo distintos valores . Se observa que en ningun momento se estanca (no genera lineas constantes) y tanto para arriba como para abajo recorre el recorrido de $\mu$s posibles. Ademas aparenta ser estable, no tiene patron a crecer ni a achicarse. Tampoco se observan valores demasiado alejados ni saltos descontrolados.
+De esta manera, el gráfico de traza mantendrá su mayor concentración de ruido alrededor del $\mu$ teórico del posterior (4), oscilando y recorriendo distintos valores. Se observa que en ningún momento se estanca (no genera líneas constantes) y tanto para arriba como para abajo recorre el recorrido de $\mu$s posibles. Además aparenta ser estable, no tiene patrón a crecer ni a achicarse. Tampoco se observan valores demasiado alejados ni saltos descontrolados.
 
-```{r}
-ggplot(mh_simulation_1, aes(x = iteration, y = mu)) + 
-  geom_line()
-```
+```{r,  fig.width=10, fig.height=6, fig.align='center'}
+traza15000 <- ggplot(mh_simulation_1, aes(x = iteration, y = mu)) + 
+  geom_line()+
+  labs(title = "Traza para: W=1, N=5000")
 
-Esta simulacion generara una muy similar a la normal calculada de manera teorica, por lo qjue decimos que el algoritmo ajusta bien a la posterior que queriamos calcular. Por lo tanto, la simulación MCMC reproduce correctamente la forma de la distribución teórica.
-
-```{r}
-ggplot(mh_simulation_1, aes(x = mu)) + 
+hist15000 <- ggplot(mh_simulation_1, aes(x = mu)) + 
   geom_histogram(aes(y = ..density..), color = "white", bins = 20) + 
-  stat_function(fun = dnorm, args = list(4,0.6), color = "blue")
+  stat_function(fun = dnorm, args = list(4,0.6), color = "blue")+
+  labs(title = "Histograma para: W=1, N=5000 ")
 
+traza15000+hist15000
 ```
+
+Esta simulación generara una muy similar a la normal calculada de manera teórica, por lo qjue decimos que el algoritmo ajusta bien a la posterior que queriamos calcular. Por lo tanto, la simulación MCMC reproduce correctamente la forma de la distribución teórica.
 
 ### Parte A: 50 iterations, W=50.
 
-Al iterar 50 veces con un w tan grande, los valores posibles para la uniforme perteneceran a \[-47,53\]. Este intevalo es sumamente amplio si lo comparamos con la normal que estamos intentando muestrear. Esto generara que los valores de proposal esten muy dispersos respecto a 3, por ende al evaluar la funcion en proposal tendera a cero, haciendo muy probable que los $\alpha$ de cada iteracion sean muy pequenos y por ende la probabilidad de hacer el salto en el sorteo sea muy baja. Por ende, seria esperable ver pocos saltos de valor, es decir que nos costara salir del current inicial y a su vez nos costara salir del nuevo valor que tomemos.
+Al iterar 50 veces con un w tan grande, los valores posibles para la uniforme perteneceran a $[-47,53]$. Este intevalo es sumamente amplio si lo comparamos con la normal que estamos intentando muestrear. Esto generara que los valores de proposal esten muy dispersos respecto a 3, por ende al evaluar la función en proposal tenderá a cero, haciendo muy probable que los $\alpha$ de cada iteración sean muy pequeños y por ende la probabilidad de hacer el salto en el sorteo sea muy baja. Por lo tanto, sería esperable ver pocos saltos de valor, es decir que nos va a costar salir del current inicial y a su vez nos costará salir del nuevo valor que tomemos.
 
 Respecto al histograma, es de esperar tener pocos valores con muchas observaciones cada uno.
 
-```{r}
+```{r,  fig.width=10, fig.height=6, fig.align='center'}
+set.seed(84735)
 mh_simulation_1 <- mh_tour(N = 50, w = 50, current=3)
 
-ggplot(mh_simulation_1, aes(x = iteration, y = mu)) + 
-  geom_line()
+traza5050 <- ggplot(mh_simulation_1, aes(x = iteration, y = mu)) + 
+  geom_line()+
+  labs(title = "Traza para: W=50, N=50")
+
+hist5050 <- ggplot(mh_simulation_1, aes(x = mu)) + 
+  geom_histogram(aes(y = ..density..), color = "white", bins = 10) + 
+  stat_function(fun = dnorm, args = list(4,0.6), color = "blue",  xlim = c(2, 6))+
+  coord_cartesian(xlim = c(2, 6), ylim = c(0, 1.8))+
+  labs(title = "Histograma para: W=50, N=50 ")
+
+traza5050+hist5050
 ```
 
-El grafico de la traza muestra que se rechaza para los 8 primeros valores, es decir que los valores fueron menos plausibles y el sorteo fue negativo. En el caso del valor 9 lo acepta. Finalmente sigue rechazando durante toda la iteracion, habiendo quedado fijo en aproximadamente 3.3.
+El gráfico de la traza muestra que se rechaza para los 8 primeros valores, es decir que los valores fueron menos plausibles y el sorteo fue negativo. En el caso del valor 9 lo acepta. Finalmente sigue rechazando durante toda la iteración, habiendo quedado fijo en aproximadamente 3.3.
 
 Esto generara un histograma con dos barras, dado que la cadena tuvo solo dos valores: 3 (inicial) y 3.3, que fue el aceptado en el caso numero 9.
 
-```{r}
-ggplot(mh_simulation_1, aes(x = mu)) + 
+Se observa correctamente graficada la normal que representa el posterior teórico. A su vez, se generaron las dos columnas mencionadas antereiormente en el historgrama, las cuales son sumamente altas dado que se repitió mucas veces el 3 y el 3.3. Es sumamente evidente que con n=50 y w=50, no se ajusta bien.
+
+### Parte B: 50 iterations, W=0.01.
+
+En este caso tenemos 50 iteraciones, las mismas que antes, pero cambia drásticamente nuestro W, ahora estamos dando "saltos" muy pequeños.
+
+```{r,  fig.width=10, fig.height=6, fig.align='center'}
+set.seed(84735)
+mh_simulation_2 <- mh_tour(N = 50, w = 0.01, current=3)
+
+traza00150 <- ggplot(mh_simulation_2, aes(x = iteration, y = mu)) + 
+  geom_line()+
+  labs(title = "Traza para: W=0.01, N=50 ")
+
+hist00150 <- ggplot(mh_simulation_2, aes(x = mu)) + 
   geom_histogram(aes(y = ..density..), color = "white", bins = 10) + 
   stat_function(fun = dnorm, args = list(4,0.6), color = "blue",  xlim = c(2, 6))+
-  #scale_x_continuous(breaks = 2:6, labels = 2:6) +
-  coord_cartesian(xlim = c(2, 6), ylim = c(0, 30))
+  coord_cartesian(xlim = c(2, 6), ylim = c(0, 18))+
+  labs(title = "Histograma para: W=0.01, N=50 ")
 
+traza00150+hist00150
 ```
+Al hacer la gráfica de la traza, se observa que pasa lo contrario que en el caso A. Aquí la cadena acepta casi todos los pasos, pero como son tan pequeños avanza muy lentamente. En 50 iteraciones ni siquiera llegó a un valor de $\mu=4$.
 
-Si bien el grafico a primera vista parece incorrecto, se ve raro por una cuestion de escala. Se observa correctamente graficada la normal que representa el posterior teorico. A su vez, se generaron las dos columnas mencionadas antereiormente en el historgrama, las cuales son sumamente altas dado que se repitio mucas veces el 3 y el 3.3. Es sumamente evidente que con n=50 y w=50, no se ajusta bien.
+El histograma es coherente con el gráfico de traza anterior. Tenemos unas barras muy "delgadas" concentradas cerca del valor inicial. La cadena no logra ver el panorama completo.
 
-### Parte c: Que pasa si agrandamos a n=10.000?
+### Comparación entre a y b:
 
-El grafico de traza en esta oportunidad:
+Concluimos que en un número muy bajo de iteraciones, 50 en nuestro caso, la elección de W es muy importante ya que cambios en él alteran significativamente los resultados que obtenemos, es un parámetro sensible. 
+Se hizo la prueba con dos valores de W extremadamente diferentes, uno muy grande y otro muy chico, sin embargo, para esta cantidad de iteraciones, la simulación falla en ambos casos al inentar aproximar la posteriori. El primero porque la cadena se "estanca" y el segundo porque no "explora" lo suficientemente rápido, va muy lento.
 
-```{=tex}
-\begin{itemize}
-    \item Muestra muchas mesestas, lo que nos hace pensar en que se estanco varias veces en muchos valores. Un w tan grande genera que se tranque mucho la cadena, por el tema del sorteo, que ya mencionamos anteriormente, 
-    \item Muestra varios saltos de valores bajos a altos y viceversa, lo que nos hace pensar que en alguno de los sorteos tuvimos exito a pesar de tener baja probabilidad de que esto ocurra. 
-    \item Por lo tanto, a pesar de tener un w tan proporcionalmente grande, con \(n=10000\) logramos compensar parte del efecto de los estancamientos para poder ver todo el recorrido.
-    \item Probablemente genere un histograma sesgado, o con columnas mas altas de lo que deberian en algunos valores.
-\end{itemize}
-```
-```{r}
-mh_simulation_1 <- mh_tour(N = 10000, w = 50, current=3)
+### Parte c: Que pasa si agrandamos a n=1000?
 
-ggplot(mh_simulation_1, aes(x = iteration, y = mu)) + 
-  geom_line()
-```
+```{r, fig.align='center', fig.width=10, fig.height=6}
+set.seed(84735)
+mh_simulation_3 <- mh_tour(N = 1000, w = 50, current=3)
 
-En el histograma se observa que, a pesar de no usar el w ideal, logramos mejorar bastante la aproximacion a la normal. Si bien a la aproximacion le falta mucho para ser buena, empieza a verse reflejada la forma.
+traza100050 <- ggplot(mh_simulation_3, aes(x = iteration, y = mu)) + 
+  geom_line()+
+  labs(title = "Traza para: W=50, N=1000")
 
-Los valores mas extremos, empieza a verse reflejados de buena manera, acompasando la curva de la normal. En el centro se observa una serie de valores entorno a 4 que no lograron tener buena densidad.
-
-De este modo, podemos pensar que agrandando suficientemente la N, logramos compensar gran parte del efecto de haber elegido un w tan grande.
-
-```{r}
-ggplot(mh_simulation_1, aes(x = mu)) + 
+hist100050 <- ggplot(mh_simulation_3, aes(x = mu)) + 
   geom_histogram(aes(y = ..density..), color = "white", bins = 20) + 
   stat_function(fun = dnorm, args = list(4,0.6), color = "blue",  xlim = c(2, 6))+
-  #scale_x_continuous(breaks = 2:6, labels = 2:6) +
-  coord_cartesian(xlim = c(2, 6), ylim = c(0, 1))
+  coord_cartesian(xlim = c(2, 6), ylim = c(0, 2))+
+  labs(title = " Histograma para: W=50, N=1000")
 
+traza100050+hist100050
 ```
 
-Si volvemos a repetir la simulacion, pero esta vez con n=50.000, logramos aproximar de mucha mejor manera la normal teorica del posterior.
+En el histograma se observa que, a pesar de no usar el w ideal, logramos mejorar bastante la aproximación a la normal. Y si bien le falta mucho para ser buena, empieza a verse reflejada la forma. En el centro se observa una serie de valores entorno a 4 que no lograron tener buena densidad.
+
+El gráfico de traza en esta oportunidad muestra muchas mesestas, lo que nos hace pensar en que se estancó varias veces en muchos valores. Un w tan grande genera que se tranque mucho la cadena, por el tema del sorteo, que ya mencionamos anteriormente. Por otro lado, muestra varios saltos de valores bajos a altos y viceversa, lo que nos hace pensar que en alguno de los sorteos tuvimos éxito a pesar de tener baja probabilidad de que esto ocurra.vPor lo tanto, a pesar de tener un w tan proporcionalmente grande, con $(n=1000)$ logramos compensar parte del efecto de los estancamientos para poder ver todo el recorrido. Probablemente genere un histograma sesgado, o con columnas mas altas de lo que deberían en algunos valores.
+
+Entonces, podemos llegar a pensar que agrandando suficientemente la N, logramos compensar gran parte del efecto de haber elegido un w tan grande.
+
+Si volvemos a repetir la simulación, pero esta vez con n=50000, logramos aproximar de mucha mejor manera la normal teorica del posterior.
 
 Aun no llega a ser perfecta, pero cada vez es mejor.
 
 Esto nos da lugar a pensar que era cierta nuestra teoria de que con un n suficientemente grande, compensamos el efecto de un mal w.
 
-```{r}
+```{r, fig.align='center'}
 mh_simulation_1 <- mh_tour(N = 50000, w = 50, current=3)
 ggplot(mh_simulation_1, aes(x = mu)) + 
   geom_histogram(aes(y = ..density..), color = "white", bins = 20) + 
   stat_function(fun = dnorm, args = list(4,0.6), color = "blue",  xlim = c(2, 6))+
-  #scale_x_continuous(breaks = 2:6, labels = 2:6) +
-  coord_cartesian(xlim = c(2, 6), ylim = c(0, 1))
+  coord_cartesian(xlim = c(2, 6), ylim = c(0, 1)) +
+  labs(title = "Histograma para: W=50, N=50.000 ")
 
 ```
 
-Computacionalmente podemos verlo como que estamos sacrificando eficiencia a cambio de haber elegido mal los parametros. Se muestra que con un tamaño de muestra suficientemente grande podemos compensar un tuning ineficiente, aunque a costa de un uso mucho mayor de recursos computacionales. Se intento volver a reproducir con n=500.000, pero la computadora no tuvo capacidad de soportarlo.
+Computacionalmente podemos verlo como que estamos sacrificando eficiencia a cambio de haber elegido mal los parametros. Se muestra que con un tamaño de muestra suficientemente grande podemos compensar un tuning ineficiente, aunque a costa de un uso mucho mayor de recursos computacionales. Se intento volver a reproducir con n=50.000, pero la computadora no tuvo capacidad de soportarlo.
 
 Por lo tanto, no todo tuning ineficiente sera compensable.
 
-```{r}
+Como prueba de esto, si hubieramos elegido un w considerablemente peor que 50, por ejemplo 5000, el efecto de n no alcanza para arreglarlo. La gráfica se parece al ejemplo inicial de w=50 y n=50, donde le cuesta muchísimo salir de cada valor. Necesitaríamos un n inmensamente superior para compensarlo, lo que computacionalmente no siemrpe será viable. Visualizamos esto en el siguiente histograma:
+
+```{r, fig.align='center'}
 mh_simulation_1 <- mh_tour(N = 50000, w = 5000, current=3)
 ggplot(mh_simulation_1, aes(x = mu)) + 
   geom_histogram(aes(y = ..density..), color = "white", bins = 20) + 
   stat_function(fun = dnorm, args = list(4,0.6), color = "blue",  xlim = c(2, 6))+
   #scale_x_continuous(breaks = 2:6, labels = 2:6) +
-  coord_cartesian(xlim = c(2, 6), ylim = c(0, 1))+
-  labs(title = "W=5.000, N=50.000 ")
+  coord_cartesian(xlim = c(2, 6), ylim = c(0, 3.2))+
+  labs(title = "Histograma para: W=5.000, N=50.000 ")
+```
+De esta manera, concluimos que es mas eficaz mejorar el w antes que seguir agrandando la simulación.
 
+### Parte D: 1000 iterations, w=0.01
+
+Finalmente, trabajaremos con la misma cantidad de iteraciones que en el caso anterior, solo que en este caso vamos a disminuir w considerablemente, pasa de ser 50 a 0.01.
+
+```{r, fig.align='center', fig.width=10, fig.height=6}
+set.seed(84735)
+mh_simulation_4 <- mh_tour(N = 1000, w = 0.01, current=3)
+
+traza1000001 <- ggplot(mh_simulation_4, aes(x = iteration, y = mu)) + 
+  geom_line()+
+  labs(title = "Traza para: W=0.01, N=1000")
+
+hist1000001 <- ggplot(mh_simulation_4, aes(x = mu)) + 
+  geom_histogram(aes(y = ..density..), color = "white", bins = 10) + 
+  stat_function(fun = dnorm, args = list(4,0.6), color = "blue",  xlim = c(2, 6))+
+  coord_cartesian(xlim = c(2, 6), ylim = c(0, 12))+
+  labs(title = " Histograma para: W=0.01, N=1000")
+
+traza1000001+hist1000001
+```
+En cuanto a la traza, observamos que se va moviendo de forma más rápida que en los casos anteriores, sin embargo, sigue sin llegar al centro de la distribución, que es aproximadamente $\mu=4$.
+
+En el histograma, se muestra la distribución de los valores visitados, pero sólo es una pequeña porción de la verdadera ditribución a posteriori.
+
+Si bien el valor de W es más adecuado en este caso, vemos que todavía se podría mejorar nuestro modelo. 
+
+Como fue explicado anteriormente, es mejor buscar un mejor valor de W, un mejor "tuning", que simplemente aumentar la cantidad de iteraciones. Sin embargo, surge la pregunta de cómo se "encuentra" este valor de W adecuado. Si bien no existe una fórmula para esto, en general lo más conveniente es elegir uno que no sea ni muy alto ni muy bajo, se busca un balance, que no se estanque la cadena, pero que tampoco vaya recorriendo los valores de forma demasiado lenta. Como vimos con estos ejemplos, si bien un valor de N alto puede compensar hasta cierto punto el efecto de un tuning malo, de todas formas lo mejor es primer encontrar un valor de W adecuado. Para los disntintos gráficos de traza e histogramas que realizamos, con sus correspondientes valores de W diferentes, se observa que el más adecuado fue el primero, el que se realizó al presentar el ejercicio, el cual tenía un valor de 1. Esto es razonable con lo que planteamos antes, no es un valor extremo. En cambio, 50 y 0.01 sí lo son.
+
+\newpage
+## Anexo
+
+Simulación de las cadenas de markov monte carlo del ejercicio 6.15:
+
+```{r, echo=TRUE}
+y <- c(0,1,0)
+
+gp_sim <-stan(
+  model_code = gp_model,
+  data = list(N = length(y), Y=y),
+  chains = 4,
+  iter = 5000*2,   
+  seed = 84735)
 
 ```
 
-Como prueba de que no todo tuning eficiente sera compensable, si hubieramos elegido un w considerablemente peor que 50, por ejemplo 5000, el efecto de n no alcanza para arreglarlo. La grafica se parece al ejemplo inicial de w=50 y n=50, donde le cuesta muchisimo salir de cada valor. Necesitariamos un n inmensamente superior para compensarlo, lo que computacionalmente no siemrpe sera viable.
 
-De esta manera, concluimos que es mas eficaz mejorar el w antes que seguir agrandando la simulacion.
+
+
+
+
+
