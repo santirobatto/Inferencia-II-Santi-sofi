@@ -253,7 +253,7 @@ gp_model <- "
 "
 ```
 
-El siguiente paso es utilizar la función stan para simular las 4 cadenas:
+El siguiente paso es utilizar la función stan para simular las 4 cadenas. **(Ver anexo)**
 
 ```{r, include=FALSE}
 y <- c(0,1,0)
@@ -267,7 +267,7 @@ gp_sim <-stan(
 
 ```
 
-Se observa que se va haciendo la simulación de cada una, indicando el total de iteraciones realizadas y el tiempo que llevó completar la simulación. Cabe destacar que cuantas más cadenas simulemos, más tiempo va a tardar. Es un algoritmo "costoso" en términos de recursos y tiempo.
+Se va haciendo la simulación de cada una, indicando el total de iteraciones realizadas y el tiempo que llevó completar la simulación. Cabe destacar que cuantas más cadenas simulemos, más tiempo va a tardar. Es un algoritmo "costoso" en términos de recursos y tiempo.
 
 Utilizamos las funciones mcmc_trace para graficar la traza, densoverlay para ver todas las densidades superpuestas, mcmc_hist para calcular el histograma y mcmc_dens para calcular la función de densidad.
 
