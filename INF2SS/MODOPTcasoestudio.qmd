@@ -1,0 +1,75 @@
+---
+title: "Caso de Estudio Modelado Y Optimización - Grupo 3"
+author: "Camilo Aramburu, Hector Almeida, Sofia Terra"
+format: pdf
+editor: visual
+---
+
+## PARTE A: Modelado Matemático
+
+A continuación se describen las consideraciones tomadas para el modelado de la realidad planteada. En primer lugar, no es estrictamente necesario incluir el conjunto de proyectos No Financiables (NF), ya que no se asignarán fondos para ellos y su inclusión podría complicar innecesariamente el modelo. Sin embargo, considerarlos puede aumentar la flexibilidad del modelo para posibles futuras modificaciones. En ese caso, se debe agregar una restricción que fije su variable de decisión a cero.
+
+En cuanto al objetivo del modelo, una primera opción sería simplemente maximizar el gasto total de los proyectos seleccionados, considerando que se le otorga el 100% a los AF y 50% a los PF. Este enfoque lleva a que se podrían computar distintas soluciones que tienen el mismo gasto, por lo tanto se considerarían igualmente óptimas, y no se estaría teniendo en cuenta qué proporción de proyectos AF y PF tiene una determinada solución. Por lo que optamos por un enfoque donde un proyecto seleccionado suma un cierto puntaje según su categoría, y tratamos de maximizar el puntaje total.
+
+
+
+### Conjuntos
+
+Para modelar el conjunto de proyectos, podríamos tener un solo conjunto donde cada proyecto contiene la información de la categoría a la que pertenece. Otra opción es agruparlos en dos conjuntos distintos según su categoría: Altamente Financiables (AF) y Parcialmente Financiables (PF). Esta última alternativa es más eficiente porque evita la necesidad de incluir explícitamente la clasificación para cada proyecto, lo que simplifica y reduce el tamaño del modelo.
+
+$AF$ - **Conjunto de N elementos (precio de financiación)**
+
+$PF$ - **Conjunto de M elementos (precio de financiación)**
+
+### Parámetros
+
+En cuanto a los parámetros, se decidió incluir el monto máximo y dos pesos que denotan la importancia que se le dá a cada clasificación de proyecto. De esta forma, se puede especificar para cada instancia del problema una valoración única de la evaluación de los expertos. Se espera que el peso de los proyectos AF sea mayor que el peso de los proyectos PF para obtener resultados razonables.
+
+$G > 0$ - **Monto máximo previsto para los proyectos**
+
+$\alpha \in [0,1]$ - **Peso de proyectos AF** 
+
+$\beta \in [0,1]$ - **Peso de proyectos PF** 
+
+### Variables
+
+Las variables de decisión corresponden a la elección de incluir un proyecto determinado o no. Por lo explicado anteriormente, esto corresponde con dos conjuntos de variables de decisión.
+
+$X_i$ binarias con $i = 1,..,N$ **(elección de proyectos AF)**
+
+$X_j$ binarias con $j = 1,..,M$ **(elección de proyectos PF)**
+
+### Función Objetivo
+
+La función objetivo elegida contabiliza el “puntaje” de la elección de proyectos. Para esto se tienen en cuenta los pesos asignados a cada categoría de proyecto.
+
+$$
+\text{max}  \quad Z = \sum_{i=1}^{N} \alpha \cdot X_i + \sum_{j=1}^{M} \beta \cdot X_j
+$$
+
+### Restricciones
+
+Finalmente, se debe agregar una restricción para asegurar que la elección de proyectos no exceda el monto máximo.
+
+$$
+\sum_{i=1}^{N} {Xi * AF[i]} + \sum_{j=1}^{M} {Xj * PF[j] * 0.5} \leq G
+$$
+\newpage
+
+## PARTE B: Modificaciones por áreas
+
+Si ahora se decidiera dar prioridad de financiación a los proyectos de
+ciertas áreas de conocimiento, se deberían realizar las siguientes modificaciones al modelo.
+
+En primer lugar, se debería agregar un nuevo parámetro que vincula cada área con la prioridad que se le quiere dar a la misma (un conjunto de “pesos” con la misma cantidad de elementos que áreas). 
+Luego, para cada proyecto (tanto AF como PF) se debería saber a qué área corresponde.       Finalmente, se tendría que modificar la función objetivo para que cada término de las sumatorias sea multiplicado por la prioridad del área a la que está asignada el proyecto. 
+
+Un detalle de este método es que se incluye en los mismos términos de la función objetivo tanto los pesos por clasificación de proyecto (AF/PF) como la priorización por área. Si bien esto lleva a que se consideren ambos criterios, es importante remarcar que el ajuste de estos parámetros es muy importante para obtener resultados consistentes con las preferencias.
+
+
+
+
+
+
+
+
