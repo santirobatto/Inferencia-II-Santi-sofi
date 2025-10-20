@@ -1,0 +1,87 @@
+---
+title: "Tarea7Gibbs"
+author: "Santiago Robatto y Sofia Terra"
+format: pdf
+editor: visual
+---
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+#Cargar paquetes
+library(bayesrules)
+library(tidyverse)
+library(rstan)
+library(bayesplot)
+library(broom.mixed)
+library(janitor)
+library(ggplot2)
+```
+
+## Ejercicio 8.9 Bayes Rules!
+
+![](8.9letra.png){fig-align="center"}
+
+### Respuestas:
+
+Contexto: estamos trabajando con pruebas de hipótesis, una tarea fundamental en el análisis bayesiano. Este ejercicio tiene el objetivo de funcionar como un acercamiento básico a este tema.
+
+**a.** Primero nos piden calcular la **probabilidad a posteriori de la hipótesis alternativa**.
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Para pi > 0.4, queremos la cola derecha
+#obtenemos la probabilidad a la derecha de pi
+#obs: se calcula la cola izquierda de forma predeterminada
+post_prob <- pbeta(0.4, 4, 3, lower.tail = FALSE)
+post_prob
+```
+El resultado revela que hay gran evidencia a favor de la hipótesis alternativa, una probabilidad posteriori de aproximadamente 82% de que $\pi$ será mayor a 0.4.
+
+
+**b.** Ahora calculamos la **posterior odds**.
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+post_odds <- post_prob / (1 - post_prob)
+post_odds
+```
+Ya sabemos que la probabilidad a posteriori de la alternativa es 0.8202, por lo tanto, nuestra probabilidad posteriori de la hipótesis nula será 1-0.8202 = 0.1792. Entonces:
+$$
+\text{posterior odds} = \frac{0.8202}{0.1792} \approx 4.58
+$$
+Es casi 5 veces más plausible que $\pi$ supere 0.4. Los posterior odds representan nuestra información actualizada con respecto a $\pi$ luego de observar los datos muestreados.
+
+**c.** A continuación, vamos a ver cuáles son nuestros **priori odds**.
+Primero calculamos la probabilidad a priori de la hipótesis alternativa. Esta es aproximadamente 0.6645.
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+prior_prob <- pbeta(0.4, 1, 0.8, lower.tail = FALSE)
+prior_prob
+```
+Con este resultado obtenemos que la probabilidad a priori de la nula es aproximadamente 0.3354. Por lo tanto, la prior odds es 1.98. Esto significa que es casi 2 veces más plausible que $\pi$ supere 0.4.
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+prior_odds <- prior_prob / (1 - prior_prob)
+prior_odds
+```
+
+**d.** Ahora, vamos a trabajar con el **Factor de Bayes**. Esta medida compara la posterior odds con la prior odds. Nos da información sobre cuánto evolucionó nuestra variable de estudio luego de observar los datos de la muestra.
+
+La fórmula es:
+
+$$
+\text{Bayes Factor} = \frac{\text{posterior odds}}{\text{prior odds}} 
+$$
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+BF <- post_odds / prior_odds
+BF
+```
+En nuestro ejercicio, el factor de Bayes es $\approx 2$. Esto implica que al observar la información recabada, la posterior odds es 2 veces más grande que la prior odds. La plausibilidad de la alternativa aumentó, sin embargo, no lo hizo a gran escala. Para que hubiera mayor evidencia sobre la alternativa, el factor de Bayes debería ser mucho más alto. Como punto de comparación, en el ejemplo del capítulo 8 de Bayes Rules!, el factor de bayes que se obtiene es 60, aportando este gran evidencia sobre la hipótesis alternativa.
+
+**e.** **Explicación cualitativa de los resultados:**
+
+Lo que buscamos con este ejercicio es saber si la información que recolectamos sobre nuestro estudio apoya nuestra hipótesis alternativa, la "idea" que queremos probar como verdadera, en contraste con la hipótesis nula, la que queremos rechazar. Para obtener una conclusión adecuada calculamos primero la probabilidad de nuestra distribución a posteriori (nuestra información actualizada luego de llevar a cabo la investigación), la probabilidad de la distribución a priori (nuestra información inicial, nuestra "base") y luego las comparamos haciendo el cociente entre ellas. Esto nos mostró que nuestra creencia sobre la veracidad de la hipótesis alternativa aumentó. Si bien no fue de forma pronunciada, ahora tenemos mayor evidencia sobre la idea que queremos probar como cierta.
+
+
+
+
+
+
+
+
+
+

@@ -74,6 +74,7 @@ grid_data <- grid_data %>%
   )
 grid_data
 ```
+
 ```{r, include=FALSE}
 datosgridd <- head(grid_data)
 ```
@@ -105,7 +106,7 @@ kable(datosgridd2,
       digits = 12, 
       caption = "Primeros 6 datos de Grid Data Actualizada (con posteriori)")%>%
   kable_styling(bootstrap_options = c("striped", "hover"))
-``` 
+```
 
 El siguiente paso se realiza sólo para verificar que todo esté funcionando bien. El hecho de que la suma de la variable posterior sume 1 nos asegura que esta efectivamente sea una probabilidad.
 
@@ -225,6 +226,7 @@ ggplot(post_sample, aes(x = mu_grid)) +
   lims(x = c(5, 15))+
   labs(title = "Muestreo a partir del posterior discreto")
 ```
+
 \newpage
 
 ## Exercise 6.15 (MCMC with RStan: Gamma-Poisson)
@@ -232,6 +234,7 @@ ggplot(post_sample, aes(x = mu_grid)) +
 ![](fotoconsigna6.15.png)
 
 ## Respuestas:
+
 Ahora trabajamos con un modelo más complejo, donde sería difícil calcular la distribución a posteriori de forma directa. Por eso recurrimos a las Caddenas de Markov Monte Carlo (MCMC). Esta técnica computacional permite aproximar distribuciones mediante la generación de una cadena de muestras aleatorias, que, una vez estabilizada, converge a la distribución posteriori que estamos buscando. Para realizar esto utilizamos RStan, que nos permite utilizar herramientas de Stan en R.
 
 El primer paso que debemos hacer es definir el modelo. Para ello utilizaremos la estructura base de Stan: definir el recorrido de los datos, los parámetros y por último el modelo. Para definir los datos utilizaremos $(Y_1,Y_2,Y_3)=(0,1,0)$, que representa el vector de observaciones $Y$. En los parametros usaremos $\lambda$ y lo definiremos en $\mathbb{R}^+$, dado que es el recorrido de cualquier distribución poisson. Finalmente definiremos la distribución de $Y$ y $\lambda$, con el modelo gamma-poisson. Sabemos que los datos siguen una distribución Poisson ($\lambda$) y que $\lambda \sim \text{Gamma}(20, 5)$. La definición del modelo por ende es la siguiente:
@@ -289,16 +292,19 @@ dens <- mcmc_dens(gp_sim, pars = "lambda") +
 
 (traza + densoverlay) / (hist + dens)
 ```
+
 Obtuvimos una gráfica que muestra las distintas trazas de nuestras cadenas, otra que muestra sus densidades, un histograma y una función de densidad de todo lo simulado.
 
 Observamos que la simulación convergió correctamente. Las trazas oscilan de forma estable. Asimismo, es casi imposible distinguir las cadenas, ya que están todas superpuestas. Esto es lo que buscamos, es ideal, ya que todas las cadenas independientes nos dan resultados parecidos, a pesar de haber empezado de puntos diferentes, esto es naturaleza bayesiana en su escencia.
 
 Ahora observemos más detalladamente las densidades de las distintas cadenas:
+
 ```{r, fig.align='center'}
  mcmc_dens_chains(gp_sim, pars = "lambda") + 
   ylab("density") +
   labs(title = "Densidades de las cuatro cadenas")
 ```
+
 Las cuatro gráficas de densidad estan casi perfectamente superpuestas. Esto confirma lo que vimos en el gráfico de las trazas. La distribución final es casi igual para las cuatro cadenas. Analizando el gráfico concluimos que el valor más plausible de $\lambda$ es aproximadamente 2.5.
 
 Finalmente, vamos a comparar la densidad simulada con la teórica, vamos a analizar una distribución Gamma.
@@ -308,16 +314,11 @@ $$
 \lambda \mid Y \sim \text{Gamma}\left(\alpha + \sum_{i=1}^{n} Y_i, \beta + n\right)
 $$
 
-Aplicando esto a nuestros datos obtenemos:
-$\text{Gamma}(20, 5) \implies \alpha = 20, \beta = 5$
-$0, 1, 0) \implies n = 3$ y $\sum Y_i = 0 + 1 + 0 = 1$
+Aplicando esto a nuestros datos obtenemos: $\text{Gamma}(20, 5) \implies \alpha = 20, \beta = 5$ $0, 1, 0) \implies n = 3$ y $\sum Y_i = 0 + 1 + 0 = 1$
 
-Ahora sustituimos en la fórmula:
-$\alpha' = 20 + 1 = 21$
-$\beta' = 5 + 3 = 8$
+Ahora sustituimos en la fórmula: $\alpha' = 20 + 1 = 21$ $\beta' = 5 + 3 = 8$
 
-Obtenemos que la distribución teórica de $\lambda$ es $\text{Gamma}(21, 8)$.
-Ahora la graficamos junto con lo que obtuvimos antes:
+Obtenemos que la distribución teórica de $\lambda$ es $\text{Gamma}(21, 8)$. Ahora la graficamos junto con lo que obtuvimos antes:
 
 ```{r, fig.align='center'}
 
@@ -336,8 +337,7 @@ mcmc_dens_overlay(gp_sim, pars = "lambda") +
   )
 ```
 
-Observamos que el valor más plausible de $\lambda$ también se encuentra en torno al 2.5.
-Esto significa que nuestra simulación MCMC funcionó correctamente, se acercó extremadamente bien a la distribución teórica. Esta aproximación es muy potente y muy acertada.
+Observamos que el valor más plausible de $\lambda$ también se encuentra en torno al 2.5. Esto significa que nuestra simulación MCMC funcionó correctamente, se acercó extremadamente bien a la distribución teórica. Esta aproximación es muy potente y muy acertada.
 
 \newpage
 
@@ -384,6 +384,7 @@ one_mh_iteration <- function(w, current){
   # Return the results
   return(data.frame(proposal, alpha, next_stop))
 }
+
 ```
 
 ### Parte a: W=0.01
@@ -505,7 +506,7 @@ hist5050 <- ggplot(mh_simulation_1, aes(x = mu)) +
 traza5050+hist5050
 ```
 
-El gráfico de la traza muestra que se rechaza para los 6 primeros valores, es decir que los valores fueron menos plausibles y el sorteo fue negativo. En el caso del valor 6 lo acepta. Luego, sigue rechazando hasta llegar al valor 26, donde vuelve a aceptar. Después rechaza hasta llegar al 35, donde allí acepta, y finalmente se mantiene constante. 
+El gráfico de la traza muestra que se rechaza para los 6 primeros valores, es decir que los valores fueron menos plausibles y el sorteo fue negativo. En el caso del valor 6 lo acepta. Luego, sigue rechazando hasta llegar al valor 26, donde vuelve a aceptar. Después rechaza hasta llegar al 35, donde allí acepta, y finalmente se mantiene constante.
 
 Esto generara un histograma con cuatro barras, dado que la cadena tuvo solo 4 valores: 3, 3.8, 4.6 y 5.1, siendo estos los valores aceptados en distintos momentos.
 
@@ -531,14 +532,14 @@ hist00150 <- ggplot(mh_simulation_2, aes(x = mu)) +
 
 traza00150+hist00150
 ```
+
 Al hacer la gráfica de la traza, se observa que pasa lo contrario que en el caso A. Aquí la cadena acepta casi todos los pasos, pero como son tan pequeños avanza muy lentamente. En 50 iteraciones ni siquiera llegó a un valor de $\mu=4$.
 
 El histograma es coherente con el gráfico de traza anterior. Tenemos unas barras muy "delgadas" concentradas cerca del valor inicial. La cadena no logra ver el panorama completo.
 
 ### Comparación entre a y b:
 
-Concluimos que en un número muy bajo de iteraciones, 50 en nuestro caso, la elección de W es muy importante ya que cambios en él alteran significativamente los resultados que obtenemos, es un parámetro sensible. 
-Se hizo la prueba con dos valores de W extremadamente diferentes, uno muy grande y otro muy chico, sin embargo, para esta cantidad de iteraciones, la simulación falla en ambos casos al inentar aproximar la posteriori. El primero porque la cadena se "estanca" y el segundo porque no "explora" lo suficientemente rápido, va muy lento.
+Concluimos que en un número muy bajo de iteraciones, 50 en nuestro caso, la elección de W es muy importante ya que cambios en él alteran significativamente los resultados que obtenemos, es un parámetro sensible. Se hizo la prueba con dos valores de W extremadamente diferentes, uno muy grande y otro muy chico, sin embargo, para esta cantidad de iteraciones, la simulación falla en ambos casos al inentar aproximar la posteriori. El primero porque la cadena se "estanca" y el segundo porque no "explora" lo suficientemente rápido, va muy lento.
 
 ### Parte c: Que pasa si agrandamos a n=1000?
 
@@ -596,6 +597,7 @@ ggplot(mh_simulation_1, aes(x = mu)) +
   coord_cartesian(xlim = c(2, 6), ylim = c(0, 3.2))+
   labs(title = "Histograma para: W=5.000, N=50.000 ")
 ```
+
 De esta manera, concluimos que es mas eficaz mejorar el w antes que seguir agrandando la simulación.
 
 ### Parte D: 1000 iterations, w=0.01
@@ -618,15 +620,17 @@ hist1000001 <- ggplot(mh_simulation_4, aes(x = mu)) +
 
 traza1000001+hist1000001
 ```
+
 En cuanto a la traza, observamos que se va moviendo de forma más rápida que en los casos anteriores, sin embargo, sigue sin llegar al centro de la distribución, que es aproximadamente $\mu=4$.
 
 En el histograma, se muestra la distribución de los valores visitados, pero sólo es una pequeña porción de la verdadera ditribución a posteriori.
 
-Si bien el valor de W es más adecuado en este caso, vemos que todavía se podría mejorar nuestro modelo. 
+Si bien el valor de W es más adecuado en este caso, vemos que todavía se podría mejorar nuestro modelo.
 
 Como fue explicado anteriormente, es mejor buscar un mejor valor de W, un mejor "tuning", que simplemente aumentar la cantidad de iteraciones. Sin embargo, surge la pregunta de cómo se "encuentra" este valor de W adecuado. Si bien no existe una fórmula para esto, en general lo más conveniente es elegir uno que no sea ni muy alto ni muy bajo, se busca un balance, que no se estanque la cadena, pero que tampoco vaya recorriendo los valores de forma demasiado lenta. Como vimos con estos ejemplos, si bien un valor de N alto puede compensar hasta cierto punto el efecto de un tuning malo, de todas formas lo mejor es primer encontrar un valor de W adecuado. Para los disntintos gráficos de traza e histogramas que realizamos, con sus correspondientes valores de W diferentes, se observa que el más adecuado fue el primero, el que se realizó al presentar el ejercicio, el cual tenía un valor de 1. Esto es razonable con lo que planteamos antes, no es un valor extremo. En cambio, 50 y 0.01 sí lo son.
 
 \newpage
+
 ## Anexo
 
 Simulación de las cadenas de markov monte carlo del ejercicio 6.15:
@@ -642,10 +646,3 @@ gp_sim <-stan(
   seed = 84735)
 
 ```
-
-
-
-
-
-
-
