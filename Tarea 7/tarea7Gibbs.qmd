@@ -25,6 +25,8 @@ library(ggplot2)
 Contexto: estamos trabajando con pruebas de hipótesis, una tarea fundamental en el análisis bayesiano. Este ejercicio tiene el objetivo de funcionar como un acercamiento básico a este tema.
 
 **a.** Primero nos piden calcular la **probabilidad a posteriori de la hipótesis alternativa**.
+Para ello, calcularemos la probabilidad de que $\pi$ pertenezca al intervalo de la hipotesis alternativa, es decir que sea mayor que 0.4.
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #Para pi > 0.4, queremos la cola derecha
 #obtenemos la probabilidad a la derecha de pi
@@ -32,27 +34,34 @@ Contexto: estamos trabajando con pruebas de hipótesis, una tarea fundamental en
 post_prob <- pbeta(0.4, 4, 3, lower.tail = FALSE)
 post_prob
 ```
-El resultado revela que hay gran evidencia a favor de la hipótesis alternativa, una probabilidad posteriori de aproximadamente 82% de que $\pi$ será mayor a 0.4.
 
+El resultado revela que hay gran evidencia a favor de la hipótesis alternativa. La  probabilidad de que $\pi$ será mayor a 0.4 es aproximadamente 82% 
 
-**b.** Ahora calculamos la **posterior odds**.
+**b.** Ahora calculamos las **posterior odds**.
+
+Para ello, realizaremos el cociente entre la probabilidad a posteriori de la hipotesis alternativa  y su opuesto. 
+
 ```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
 post_odds <- post_prob / (1 - post_prob)
 post_odds
 ```
-Ya sabemos que la probabilidad a posteriori de la alternativa es 0.8202, por lo tanto, nuestra probabilidad posteriori de la hipótesis nula será 1-0.8202 = 0.1792. Entonces:
+
+Ya sabemos que la probabilidad a posteriori de la alternativa es 0.8202, por lo tanto, nuestra probabilidad posteriori de la hipótesis nula será 1-0.8202 = 0.1792. Entonces: 
+
 $$
 \text{posterior odds} = \frac{0.8202}{0.1792} \approx 4.58
-$$
-Es casi 5 veces más plausible que $\pi$ supere 0.4. Los posterior odds representan nuestra información actualizada con respecto a $\pi$ luego de observar los datos muestreados.
+$$ 
+De esta manera es casi 5 veces más plausible que $\pi$ supere 0.4. Los posterior odds representan nuestra información actualizada con respecto a $\pi$ luego de observar los datos muestreados.
 
-**c.** A continuación, vamos a ver cuáles son nuestros **priori odds**.
-Primero calculamos la probabilidad a priori de la hipótesis alternativa. Esta es aproximadamente 0.6645.
+**c.** A continuación, vamos a ver cuáles son nuestros **prior odds**. Primero calculamos la probabilidad a priori de la hipótesis alternativa. Esta es aproximadamente 0.6645:
+
 ```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
 prior_prob <- pbeta(0.4, 1, 0.8, lower.tail = FALSE)
 prior_prob
 ```
+
 Con este resultado obtenemos que la probabilidad a priori de la nula es aproximadamente 0.3354. Por lo tanto, la prior odds es 1.98. Esto significa que es casi 2 veces más plausible que $\pi$ supere 0.4.
+
 ```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
 prior_odds <- prior_prob / (1 - prior_prob)
 prior_odds
@@ -70,18 +79,15 @@ $$
 BF <- post_odds / prior_odds
 BF
 ```
+
 En nuestro ejercicio, el factor de Bayes es $\approx 2$. Esto implica que al observar la información recabada, la posterior odds es 2 veces más grande que la prior odds. La plausibilidad de la alternativa aumentó, sin embargo, no lo hizo a gran escala. Para que hubiera mayor evidencia sobre la alternativa, el factor de Bayes debería ser mucho más alto. Como punto de comparación, en el ejemplo del capítulo 8 de Bayes Rules!, el factor de bayes que se obtiene es 60, aportando este gran evidencia sobre la hipótesis alternativa.
 
 **e.** **Explicación cualitativa de los resultados:**
 
+En este ejercicio queríamos evaluar la probabilidad de que el parámetro $\pi$ sea mayor o menor que 0.4, y para eso realizaremos las cuentas antes y despues de mirar nuestros datos. 
+
+Antes de observar los datos, nuestras creencias estaban representadas por una distribución Beta(1, 0.8), lo que reflejaba una ligera inclinación hacia valores grandes de $\pi$. 
+
+Luego, al incorporar los datos, nuestra creencia se actualizó a una Beta(4, 3).A partir de esa nueva información (posterior), la probabilidad de que $\pi$ sea mayor a 0.4 aumentó considerablemente;lo que implica que los datos brindaron evidencia a favor de que $\pi$ efectivamente es mayor que 0.4.
+
 Lo que buscamos con este ejercicio es saber si la información que recolectamos sobre nuestro estudio apoya nuestra hipótesis alternativa, la "idea" que queremos probar como verdadera, en contraste con la hipótesis nula, la que queremos rechazar. Para obtener una conclusión adecuada calculamos primero la probabilidad de nuestra distribución a posteriori (nuestra información actualizada luego de llevar a cabo la investigación), la probabilidad de la distribución a priori (nuestra información inicial, nuestra "base") y luego las comparamos haciendo el cociente entre ellas. Esto nos mostró que nuestra creencia sobre la veracidad de la hipótesis alternativa aumentó. Si bien no fue de forma pronunciada, ahora tenemos mayor evidencia sobre la idea que queremos probar como cierta.
-
-
-
-
-
-
-
-
-
-
