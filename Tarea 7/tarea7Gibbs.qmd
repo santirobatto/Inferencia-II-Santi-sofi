@@ -1,5 +1,5 @@
 ---
-title: "Tarea7Gibbs"
+title: "Tarea 7"
 author: "Santiago Robatto y Sofia Terra"
 format: pdf
 editor: visual
@@ -14,6 +14,10 @@ library(bayesplot)
 library(broom.mixed)
 library(janitor)
 library(ggplot2)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(gridExtra)
 ```
 
 ## Ejercicio 8.9 Bayes Rules!
@@ -24,8 +28,7 @@ library(ggplot2)
 
 Contexto: estamos trabajando con pruebas de hipótesis, una tarea fundamental en el análisis bayesiano. Este ejercicio tiene el objetivo de funcionar como un acercamiento básico a este tema.
 
-**a.** Primero nos piden calcular la **probabilidad a posteriori de la hipótesis alternativa**.
-Para ello, calcularemos la probabilidad de que $\pi$ pertenezca al intervalo de la hipotesis alternativa, es decir que sea mayor que 0.4.
+**a.** Primero nos piden calcular la **probabilidad a posteriori de la hipótesis alternativa**. Para ello, calcularemos la probabilidad de que $\pi$ pertenezca al intervalo de la hipotesis alternativa, es decir que sea mayor que 0.4.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #Para pi > 0.4, queremos la cola derecha
@@ -35,23 +38,22 @@ post_prob <- pbeta(0.4, 4, 3, lower.tail = FALSE)
 post_prob
 ```
 
-El resultado revela que hay gran evidencia a favor de la hipótesis alternativa. La  probabilidad de que $\pi$ será mayor a 0.4 es aproximadamente 82% 
+El resultado revela que hay gran evidencia a favor de la hipótesis alternativa. La probabilidad de que $\pi$ será mayor a 0.4 es aproximadamente 82%
 
 **b.** Ahora calculamos las **posterior odds**.
 
-Para ello, realizaremos el cociente entre la probabilidad a posteriori de la hipotesis alternativa  y su opuesto. 
+Para ello, realizaremos el cociente entre la probabilidad a posteriori de la hipotesis alternativa y su opuesto.
 
 ```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
 post_odds <- post_prob / (1 - post_prob)
 post_odds
 ```
 
-Ya sabemos que la probabilidad a posteriori de la alternativa es 0.8202, por lo tanto, nuestra probabilidad posteriori de la hipótesis nula será 1-0.8202 = 0.1792. Entonces: 
+Ya sabemos que la probabilidad a posteriori de la alternativa es 0.8202, por lo tanto, nuestra probabilidad posteriori de la hipótesis nula será 1-0.8202 = 0.1792. Entonces:
 
 $$
 \text{posterior odds} = \frac{0.8202}{0.1792} \approx 4.58
-$$ 
-De esta manera es casi 5 veces más plausible que $\pi$ supere 0.4. Los posterior odds representan nuestra información actualizada con respecto a $\pi$ luego de observar los datos muestreados.
+$$ De esta manera es casi 5 veces más plausible que $\pi$ supere 0.4. Los posterior odds representan nuestra información actualizada con respecto a $\pi$ luego de observar los datos muestreados.
 
 **c.** A continuación, vamos a ver cuáles son nuestros **prior odds**. Primero calculamos la probabilidad a priori de la hipótesis alternativa. Esta es aproximadamente 0.6645:
 
@@ -84,10 +86,353 @@ En nuestro ejercicio, el factor de Bayes es $\approx 2$. Esto implica que al obs
 
 **e.** **Explicación cualitativa de los resultados:**
 
-En este ejercicio queríamos evaluar la probabilidad de que el parámetro $\pi$ sea mayor o menor que 0.4, y para eso realizaremos las cuentas antes y despues de mirar nuestros datos. 
+En este ejercicio queríamos evaluar la probabilidad de que el parámetro $\pi$ sea mayor o menor que 0.4, y para eso realizaremos las cuentas antes y despues de mirar nuestros datos.
 
-Antes de observar los datos, nuestras creencias estaban representadas por una distribución Beta(1, 0.8), lo que reflejaba una ligera inclinación hacia valores grandes de $\pi$. 
+Antes de observar los datos, nuestras creencias estaban representadas por una distribución Beta(1, 0.8), lo que reflejaba una ligera inclinación hacia valores grandes de $\pi$.
 
 Luego, al incorporar los datos, nuestra creencia se actualizó a una Beta(4, 3).A partir de esa nueva información (posterior), la probabilidad de que $\pi$ sea mayor a 0.4 aumentó considerablemente;lo que implica que los datos brindaron evidencia a favor de que $\pi$ efectivamente es mayor que 0.4.
 
 Lo que buscamos con este ejercicio es saber si la información que recolectamos sobre nuestro estudio apoya nuestra hipótesis alternativa, la "idea" que queremos probar como verdadera, en contraste con la hipótesis nula, la que queremos rechazar. Para obtener una conclusión adecuada calculamos primero la probabilidad de nuestra distribución a posteriori (nuestra información actualizada luego de llevar a cabo la investigación), la probabilidad de la distribución a priori (nuestra información inicial, nuestra "base") y luego las comparamos haciendo el cociente entre ellas. Esto nos mostró que nuestra creencia sobre la veracidad de la hipótesis alternativa aumentó. Si bien no fue de forma pronunciada, ahora tenemos mayor evidencia sobre la idea que queremos probar como cierta.
+
+\newpage
+
+## Ejercicios 8.14
+
+![](8.14letra.png){fig-align="center"}
+
+Tenemos que $\pi$ representa la proporcion de adultos que no cree en el cambio climatico. Para aprender sobre $\pi$, se utiliza información de una encuesta de n adultos, y se cuenta el número de estos que no cree en el cambio clímatico, al cual llamamos Y.
+
+**a.** Se considera como más apropiado el modelo Beta-Binomial. Estamos trabajando con una proporción. Nuestro objetivo es saber si un adulto americano cree o no en el cambio climático. Podemos modelar esto con una variable Bernouilli, la cual vale 1 si la persona no cree en el cambio climático, y vale 0 en caso contrario. Como tenemos una población de n adultos, hacemos la sumatoria de todos estos casos, lo cual distribuye de manera binomial. Por otro lado, al no ser constante la probabilidad de "éxito" (que no crea), conjugamos la binomial con una beta, la cual nos proporcionará justamente la distribución de la probabilidad de "éxito".
+
+**b.** Buscamos definir el modelo a priori de $\pi \sim \text{Beta}(\alpha, \beta)$, donde $\alpha$ es el número de "éxitos" y $\beta$ es el número de "fracasos".
+
+Al no tener información previa, se pueden considerar tres situaciones diferentes:
+
+1.  $\pi \sim \text{Beta}(1, 1)$: Aquí seríamos completamente neutrales, la cantidad de "éxitos" y "fracasos" es la misma.
+2.  $\pi \sim \text{Beta}(1, 5)$: En este caso tenemos la creencia de que pocas personas creen que el cambio climático es falso. Hay más "fracasos" que "éxitos".
+3.  $\pi \sim \text{Beta}(5, 1)$: Finalmente, aquí consideramos lo contrario a lo anteriori. Muchas personas creen que es falso. Hay más "éxitos" que "fracasos".
+
+Creemos que la más adecuada de todas estas es la segunda, ya que el cambio climático es un fenómeno que está ampliamente considerado por la población como cierto. En general, son pocos los que lo consideran como no existente. **c.** Ahora se aclara que se trabajará con una $\text{Beta}(1, 2)$, se utilizará esa priori definida por el autor. La misma sigue una tendencia similar a la especificada en la pregunta anterior, ambas tienen la creencia, o "información base" de que hay más personas que creen en el cambio climático, que las que no creen. Sin embargo, la dada por el libro no es tan extrema como la definida en la pregunta b. Aquí hay menos "fracasos" que en la otra distribución Beta.
+
+**d.**
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+#Tenemos que cargar los datos
+data("pulse_of_the_nation")
+```
+
+Vamos a trabajar con los datos de pulse_of_the_nation, del paquete bayesrules. Si filtramos por creencias sobre cambio climático obtenemos la siguiente tabla:
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, results='hide'}
+datos_climate_change <- pulse_of_the_nation %>%
+  group_by(climate_change) %>% #agrupamos por las creencias sobre CL
+  tally()
+
+kable(datos_climate_change, caption = "Resumen de opiniones:") %>%
+  kable_styling( #Estilo de la tabla
+    bootstrap_options = c("striped", "hover"), 
+    full_width = FALSE
+  )
+```
+
+Observamos que 150 personas consideran que la existencia del cambio climático es falsa. Estos son nuestros "éxitos". Si calculamos la proporción entre el total de encuestados obtenemos: $150/1000=0.15$. Esto es un 15% de la población encuestada.
+
+**e.** Tenemos que nuestro modelo inicial es:
+
+$$Y | \pi \sim \text{Bin}(1000, \pi)$$ $$\pi \sim \text{Beta}(1, 2)$$
+
+Por lo tengo, al haber observado que $Y=150$, nuestro modelo posteriori queda de la siguiente manera:
+
+$$\pi | (Y=y) \sim \text{Beta}(\alpha_{\text{prior}} + y, \quad \beta_{\text{prior}} + (n - y))$$ Si sustituimos los datos que tenemos obtenemos:
+
+$$\pi | (Y=y) \sim \text{Beta}(1 + 150, 2 + (1000 - 150))$$ $$\pi | (Y=y) \sim \text{Beta}(151, 852)$$ La función de densidad posteriori queda de la forma:
+
+$$
+f(\pi | y = 150) = \frac{\Gamma(151 + 852)}{\Gamma(151)\Gamma(852)} \pi^{151-1} (1 - \pi)^{852-1} \quad \text{for } \pi \in [0, 1].
+$$
+
+Nuestro modelo graficado es el siguiente:
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+plot_beta_binomial(alpha = 151, beta = 852, y = 150, n = 1000)  +
+   coord_cartesian(xlim = c(0.10, 0.20)) #se ajusta la escala 
+```
+
+Observación: se ve de esa forma, como "cortado" ya que se tuvo que ajustar el eje de coordenadas, hubo que arreglar la escala porque si no, no se visualizaba bien. Ocurre lo mismo en el próximo gráfico, donde se observa el intervalo de confianza del 95% para $\pi$.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+plot_beta_ci(151,852,0.95) + #función específica para calcular intervalos de confianza
+ coord_cartesian(xlim = c(0.10, 0.20)) #ajuste de escala
+```
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE, results='hide'}
+qbeta(c(0.025, 0.975), 151, 852) #función de quantiles del libro 
+```
+
+Tenemos los percentiles 2.5 y 97.5, los cuales son aproximadamente 0.129 y 1.733. Estos nos marcan el 95% de los valores posterioris plausibles de $\pi$. El intervalo de confianza resultante para $\pi$ es (0.129, 1.733), el mismo que se visualiza en el gráfico, representado por la zona pintada de celeste. El área de esta región, por lo tanto, la fracción de valores que "caen" en la misma, es 0.95. Esto nos muestra una interpretación más intuitiva sobre el intervalo de confianza. Hay una confianza del 95% de que entre el 12.9% y el 17.33% de los adultos americanos crea que la existencia del cambio climática es falsa. Si bien se calculó el intervalo de confianza del 95%, esta no es la única opción, no existe un intervalo de confianza "correcto". Dependiendo del contexto se usará uno u otro. En este caso, uno del 95% es adecuado.
+
+Observación: como fue mencionado, estamos calculando el área celeste:
+
+$$
+P(\pi \in (0.129, 1.733) | Y = 150) = \int_{0.129}^{1.733} f(\pi | y = 150) d\pi = 0.95.
+$$
+
+\newpage
+
+## Ejercicio 8.15
+
+![](8.15letra.png){fig-align="center"}
+
+**a.** Como observamos que la mayoría de la función de densidad posteriori cubre un espacio mayor a 0.1 y que el intervalo de confianza es mayor que 0.1, se rechaza la hipótesis nula, esto es, que la proporción de adultos americanos que cree que el cambio climático no existe es menor o igual al 10%.
+
+**b.** Para calcular exactamente qué tan plausible es que $\pi > 0.1$, podemos calcular la probabilidad posteriori de este caso específico:
+
+$$
+P(\pi > 0.1 | Y = 150) = \int_{0.129}^{1.733} f(\pi | y = 150) d\pi
+$$ Podemos calcular esta probabilidad con la función pbeta():
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+# probabilidad posteriori de que pi > 0.1
+post_prob2 <- pbeta(0.1, 151, 852, lower.tail = FALSE)
+post_prob2
+```
+
+Esto es aproximadamente 1, lo que significa de que casi se puede asegurar por completo que la probabilidad de que más del 10% de las personas cree que el cambio climático es falso.
+
+**c.** Ahora queremos calcular el Factor de Bayes, lo hacemos de la misma forma que en el ejercicio 8.9, calculando las posterior odds y las prior odds y haciendo el cociente entre ellas. (ver archivo .qmd)
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+post_odds2 <- post_prob2 / (1 - post_prob2)
+post_odds2
+```
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+prior_prob2 <- pbeta(0.1, 1, 2, lower.tail = FALSE)
+prior_prob2
+```
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+prior_odds2 <- prior_prob2 / (1 - prior_prob2)
+prior_odds2
+```
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+BF2 <- post_odds2 / prior_odds2
+BF2
+```
+
+Obtenemos que el factor de bayes es aproximadamente 750017. Esto significa que los datos de la muestra de 1000 personas proveen evidencia de que es \~750.000 veces más fuerte a favor de la hipótesis alternativa ($\pi > 0.1$) contra la hipótesis nula ($\pi <= 0.1$). Hay gran evidencia sobre que más del 10% de la población no cree en el cambio climático.
+
+**d.** Se concluye que la proporción de adultos que no cree en el cambio climático es mucho menor que la creída inicialente. Realizando un contraste de hipótesis se mostró que se rechazó la hipótesis nula, por lo tanto se llegó a que la proporción es mayor que el 10%. Asimismo, se calculó un intervalo de confianza, en cual se midió que con 95% de confianza, la proporción sería entre 0.129 y 1.733 (observar que la media posterior es de 0.15). Se actualizó la información con la que comenzamos nuestro estudio, luego de muestrear la población. Notar que la priori que seleccionamos en la parte b del ejercicio 8.14 era mucho más acertada que la dada por el autor del libro. En nuestra priori la proporción era de \~16%, mucho menor que el \~33% dado proporcionado por el libro. Esto indica que nos encontrabamos más informados sobre el tema que el autor.
+
+\newpage
+
+## Ejercicio 8.16
+
+![](letra8.16.png){fig-align="center"}
+
+\newpage
+
+## Ejercicio Gibbs Sampling: análisis de sensibilidad a los hiperparámetros.
+
+Buscamos comparar cómo nuestros resultados al utilizar Gibbs Sampling se ven afectados dependiendo de los valores de nuestros hiperparámetros. Vamos a considerar tres casos: los valores iniciales dados por el problema, valores poco informativos y valores muy informativos.
+
+Observación: Una priori no informativa es más débil, tiene una varianza muy grande. No se tiene una creencia fuerte. En cambio, una priori informativa sí es fuerte y tiene varianza muy baja.
+
+Lo que haremos será ejecutar el código proporcionado por el docente y se irán guardando todos los resultados en una tabla, la cual hará la visualización de las diferencias más clara.
+
+Utilizaremos los siguientes valores para realizar la comparación:
+
+```{r, echo=FALSE}
+#OBS: las tablas se realizaron con la función de crear tablas de Quarto.
+```
+
+| Caso | alpha | beta | tau\^2 | theta0 | ¿Qué se evalúa? |
+|-------|-------|------|--------|--------|--------------------------------------|
+| 1 | 3.0 | 3.0 | 10.0 | 5.0 | Valores iniciales del problema (neutrales) |
+| 2 | 0.1 | 0.1 | 10.0 | 5.0 | Valores no informativos de tau\^2 |
+| 3 | 10.0 | 10.0 | 10.0 | 5.0 | Valores informativos de tau\^2 |
+| 4 | 3.0 | 3.0 | 100.0 | 5.0 | Valores no informativos de theta0 |
+| 5 | 3.0 | 3.0 | 0.1 | 5.0 | Valores informativos de theta0 |
+| 6 | 3.0 | 3.0 | 10.0 | 6.6 | Utilización de la media (theta0 está centrada en los datos dados) |
+| 7 | 3.0 | 3.0 | 10.0 | 0.0 | Valor de theta0 que muestra una creencia sobre que el hiperparámeto no está centrado en los datos dados |
+
+```{r, message=FALSE, warning=FALSE, results='hide', echo=FALSE}
+### Ejemplo 7.3, pp.202-205
+rm(list=ls())
+
+# Datos del ejemplo p.204
+x <- c(91, 504, 557, 609, 693, 727, 764, 803, 857,
+       929, 970, 1043, 1089, 1195, 1384, 1713)
+lx <- log(x) # transformación logarítmica
+
+# Valores asignados a los hiperparámetros en la 
+# Figura 7.2, p.205
+a <- 3
+b <- 3
+tau2 <- 10
+theta0 <- 5
+```
+
+```{r, message=FALSE, warning=FALSE, results='hide', echo=FALSE}
+# Implementación del muestreador de Gibbs
+Nsim = 5000 # número de iteraciones en Figura 7.2, p.205
+xbar <- mean(lx); xbar
+n <- length(lx); n
+sh1 <- (n/2) + a; sh1
+sigma2 <- theta <- rep(0, Nsim)
+```
+
+```{r, message=FALSE, warning=FALSE, results='hide', echo=FALSE}
+set.seed(108)
+# Valores iniciales
+sigma2[1] <- 1/rgamma(1, shape=a, rate=b)
+B <- sigma2[1]/(sigma2[1] + n*tau2)
+theta[1] <- rnorm(1, mean=B*theta0 + (1-B)*xbar, sd=sqrt(tau2*B))
+
+for (i in 2:Nsim){
+  B <- sigma2[i-1]/(sigma2[i-1] + n*tau2)
+  theta[i] <- rnorm(1, mean=B*theta0 + (1-B)*xbar, sd=sqrt(tau2*B))
+  ra1 <- (1/2)*(sum((lx-theta[i])^2)) + b
+  sigma2[i] <- 1/rgamma(1, shape=sh1, rate=ra1)
+}
+
+# theta contiene los 5000 valores simulados de θ
+sigma <- sqrt(sigma2) # sigma contiene los 5000 valores simulados de σ
+```
+
+```{r, message=FALSE, warning=FALSE, results='hide', echo=FALSE}
+set.seed(108)
+# Intervalos de credibilidad aproximados del 90%
+q_theta <- quantile(theta, c(0.05, 0.95))
+q_sigma <- quantile(sigma, c(0.05, 0.95))
+cat("Intervalo del 90% para θ:", round(q_theta, 3), "\n")
+cat("Intervalo del 90% para σ:", round(q_sigma, 3), "\n")
+```
+
+```{r, message=FALSE, warning=FALSE, results='hide', echo=FALSE}
+set.seed(108)
+# Medias a posteriori
+cat("Media a posteriori de θ:", round(mean(theta), 3), "\n")
+cat("Media a posteriori de σ²:", round(mean(sigma2), 3), "\n")
+cat("Media a posteriori de σ:", round(mean(sqrt(sigma2)), 3), "\n")
+```
+
+```{r, message=FALSE, warning=FALSE, results='hide', echo=FALSE}
+set.seed(108)
+# Crear data frames para ggplot
+df_theta <- data.frame(theta = theta)
+df_sigma <- data.frame(sigma = sigma)
+df_sigma2 <- data.frame(sigma2 = sigma2)
+
+```
+
+```{r, message=FALSE, warning=FALSE, results='hide', echo=FALSE}
+set.seed(108)
+# Histograma para θ
+p_theta <- ggplot(df_theta, aes(x = theta)) +
+  geom_histogram(aes(y = after_stat(count)), 
+    color = "black", fill = "lightgray", bins = 40) +
+  labs(title = expression(theta),
+       x = "", y = "Frecuencia") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 14))
+
+```
+
+```{r, message=FALSE, warning=FALSE, results='hide', echo=FALSE}
+set.seed(108)
+# Histograma para σ
+p_sigma <- ggplot(df_sigma, aes(x = sigma)) +
+  geom_histogram(aes(y = after_stat(count)), 
+    color = "black", fill = "brown3", bins = 40) +
+  labs(title = expression(sigma),
+       x = "", y = "Frecuencia") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 14))
+
+```
+
+```{r, message=FALSE, warning=FALSE, results='hide', echo=FALSE}
+set.seed(108)
+# Histograma para σ²
+p_sigma2 <- ggplot(df_sigma2, aes(x = sigma2)) +
+  geom_histogram(aes(y = after_stat(count)), 
+    color = "black", fill = "lightblue", bins = 40) +
+  labs(title = expression(sigma^{2}),
+       x = "", y = "Frecuencia") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 14))
+```
+
+```{r, message=FALSE, warning=FALSE, results='hide', echo=FALSE, fig.show='hide'}
+set.seed(108)
+# Histogramas para θ y σ
+grid.arrange(p_theta, p_sigma, ncol = 2)
+# Histogramas para θ y σ²
+grid.arrange(p_theta, p_sigma2, ncol = 2)
+```
+
+Evaluando los valores de los hiperparámetros en cada caso se obtiene la siguiente tabla de resultados:
+
+| Caso | Media a posteriori de theta | Media a posteriori de sigma | Intervalo de Confianza del 90% para theta | Intervalo de Confianza del 90% para sigma |
+|-------|-------------|--------------|---------------|---------------|
+| 1 | 6.622 | 0.797 | (6.290 ; 6.945) | (0.615 ; 1.039) |
+| 2 | 6.220 | 0.696 | (6.333 ; 6.908) | (0.510 ; 0.948) |
+| 3 | 6.230 | 0.888 | (6.257 ; 6.987) | (0.727; 1.091) |
+| 4 | 6.628 | 0.797 | (6.295 ; 6.953) | (0.615 ; 1.039) |
+| 5 | 6.049 | 0.948 | (5.637 ; 6.409) | (0.688 ; 1.308) |
+| 6 | 6.628 | 0.797 | (6.297 ; 6.953) | (0.615 ; 1.039) |
+| 7 | 6.601 | 0.798 | (6.269 ; 6.924) | (0.616 ; 1.041) |
+
+Asimismo, utilizando el código proporcionado por el profesor, también se pueden hacer gráficas para visualizar cada caso. Podemos verlo en la siguiente imagen, ordenadas por caso de izquierda a derecha.
+
+![](valoreship.png){fig-align="center" width="980"}
+
+Por otro lado, también se pueden visualizar dos casos más distintivos: uno donde todos los valores de los hiperparámetros son poco informativos y otro donde todos los valores de los hiperparámetros son muy informativos.
+
+Primer caso: Una priori muy poco informativa:
+
+Aquí, alpha=0.1, beta=0.1, tau\^2=100.0, y theta0=0.0. Obtenemos:
+
+Media de posteriori de theta: 6.625
+
+Media de posteriori de sigma: 0.696
+
+Intervalo de confianza al 90% para theta: (6.341 ; 6.911)
+
+Intervalo de confianza al 90% para sigma: (0.510 ; 0.947)
+
+El histograma es el siguiente: ![](histpocainfo.png){fig-align="center"}
+
+Segundo caso: Una priori muy informativa:
+
+Aquí, alpha=10.0 beta=10.0, tau\^2=0.1, y theta0=6.6. Obtenemos:
+
+Media de posteriori de theta: 6.621
+
+Media de posteriori de sigma: 0.883
+
+Intervalo de confianza al 90% para theta: (6.326 ; 6.916)
+
+Intervalo de confianza al 90% para sigma: (0.725 ; 1.082)
+
+El histograma es el siguiente:
+
+![](histmuchainfo.png){fig-align="center"}
+
+Ahora volvamos a comparar con nuestro "caso base". los datos neutrales que nos proporcionaron inicialmente:
+
+Aquí, alpha=3.0, beta=3.0, tau\^2=10.0, y theta0=5.0. Obtenemos:
+
+Media de posteriori de theta: 6.622
+
+Media de posteriori de sigma: 0.797
+
+Intervalo de confianza al 90% para theta: (6.290 ; 6.945)
+
+Intervalo de confianza al 90% para sigma: (0.615 ; 1.039)
+
+El histograma es el siguiente:
+
+![](histinfoinicial.png){fig-align="center"}
