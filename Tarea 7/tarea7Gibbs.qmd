@@ -18,6 +18,8 @@ library(knitr)
 library(kableExtra)
 library(ggplot2)
 library(gridExtra)
+library(patchwork)
+library(posterior)
 ```
 
 ## Ejercicio 8.9 Bayes Rules!
@@ -100,19 +102,25 @@ Lo que buscamos con este ejercicio es saber si la información que recolectamos 
 
 ![](8.14letra.png){fig-align="center"}
 
-Tenemos que $\pi$ representa la proporcion de adultos que no cree en el cambio climatico. Para aprender sobre $\pi$, se utiliza información de una encuesta de n adultos, y se cuenta el número de estos que no cree en el cambio clímatico, al cual llamamos Y.
+**a.** Se considera como más apropiado el modelo Beta-Binomial dado que estamos trabajando con una proporción.
 
-**a.** Se considera como más apropiado el modelo Beta-Binomial. Estamos trabajando con una proporción. Nuestro objetivo es saber si un adulto americano cree o no en el cambio climático. Podemos modelar esto con una variable Bernouilli, la cual vale 1 si la persona no cree en el cambio climático, y vale 0 en caso contrario. Como tenemos una población de n adultos, hacemos la sumatoria de todos estos casos, lo cual distribuye de manera binomial. Por otro lado, al no ser constante la probabilidad de "éxito" (que no crea), conjugamos la binomial con una beta, la cual nos proporcionará justamente la distribución de la probabilidad de "éxito".
+Por un lado sabemos que $\pi$ representa la proporcion de adultos que no cree en el cambio climatico. Para aprender sobre $\pi$, se utiliza información de una encuesta de n adultos, y se cuenta el número de estos que no cree en el cambio clímatico, al cual llamamos Y.
+
+Teniendo en cuenta que nuestro objetivo es saber si un adulto americano cree o no en el cambio climático, podemos utilizar una variable Bernouilli para realizar el modelo. La misma vale 0 cuando la persona cree en el cambio climático 1 y vale 0 si la persona no cree.
+
+Por otro lado, como tenemos una población de n adultos, hacemos la sumatoria de todos estos casos, lo cual distribuye de manera binomial. Al no ser constante la probabilidad de "éxito" (que no crea), conjugamos la binomial a un modelo beta, el cual nos proporcionará la distribución de la probabilidad de "éxito".
 
 **b.** Buscamos definir el modelo a priori de $\pi \sim \text{Beta}(\alpha, \beta)$, donde $\alpha$ es el número de "éxitos" y $\beta$ es el número de "fracasos".
 
 Al no tener información previa, se pueden considerar tres situaciones diferentes:
 
-1.  $\pi \sim \text{Beta}(1, 1)$: Aquí seríamos completamente neutrales, la cantidad de "éxitos" y "fracasos" es la misma.
-2.  $\pi \sim \text{Beta}(1, 5)$: En este caso tenemos la creencia de que pocas personas creen que el cambio climático es falso. Hay más "fracasos" que "éxitos".
-3.  $\pi \sim \text{Beta}(5, 1)$: Finalmente, aquí consideramos lo contrario a lo anteriori. Muchas personas creen que es falso. Hay más "éxitos" que "fracasos".
+1.  $\pi \sim \text{Beta}(1, 1)$: En este punto somos completamente neutrales al respecto de la distribución de $\pi$, asignandole igual probabilidad a todos los valores entre 0 y 1. De cierta manera estamos diciendo que la cantidad de "éxitos" y "fracasos" es la misma.
+2.  $\pi \sim \text{Beta}(\alpha, \beta > \alpha)$, por ejemplo $\text{Beta}(1,5)$ En este caso tenemos la creencia de que pocas personas creen que el cambio climático es falso. Esperamos que haya más "fracasos" que "éxitos".
+3.  $\pi \sim \text{Beta}(\alpha, \beta < \alpha)$ Por ejemplo $\text{Beta}(5, 1)$: Finalmente, aquí consideramos lo contrario a lo anterior. Muchas personas creen que es falso. Hay más "éxitos" que "fracasos".
 
-Creemos que la más adecuada de todas estas es la segunda, ya que el cambio climático es un fenómeno que está ampliamente considerado por la población como cierto. En general, son pocos los que lo consideran como no existente. **c.** Ahora se aclara que se trabajará con una $\text{Beta}(1, 2)$, se utilizará esa priori definida por el autor. La misma sigue una tendencia similar a la especificada en la pregunta anterior, ambas tienen la creencia, o "información base" de que hay más personas que creen en el cambio climático, que las que no creen. Sin embargo, la dada por el libro no es tan extrema como la definida en la pregunta b. Aquí hay menos "fracasos" que en la otra distribución Beta.
+Creemos que la más adecuada de todas estas es la segunda, ya que el cambio climático es un fenómeno que está ampliamente considerado por la población como cierto. En general, son pocos los que lo consideran como no existente.
+
+**c.** Ahora se aclara que se trabajará con una $\text{Beta}(1, 2)$, se utilizará esa priori definida por el autor. La misma sigue una tendencia similar a la especificada en la pregunta anterior, ambas tienen la creencia, o "información base" de que hay más personas que creen en el cambio climático, que las que no creen. Sin embargo, la dada por el libro no es tan extrema como la definida en la pregunta b. Aquí hay menos "fracasos" que en la otra distribución Beta.
 
 **d.**
 
@@ -223,13 +231,160 @@ BF2
 
 Obtenemos que el factor de bayes es aproximadamente 750017. Esto significa que los datos de la muestra de 1000 personas proveen evidencia de que es \~750.000 veces más fuerte a favor de la hipótesis alternativa ($\pi > 0.1$) contra la hipótesis nula ($\pi <= 0.1$). Hay gran evidencia sobre que más del 10% de la población no cree en el cambio climático.
 
-**d.** Se concluye que la proporción de adultos que no cree en el cambio climático es mucho menor que la creída inicialente. Realizando un contraste de hipótesis se mostró que se rechazó la hipótesis nula, por lo tanto se llegó a que la proporción es mayor que el 10%. Asimismo, se calculó un intervalo de confianza, en cual se midió que con 95% de confianza, la proporción sería entre 0.129 y 1.733 (observar que la media posterior es de 0.15). Se actualizó la información con la que comenzamos nuestro estudio, luego de muestrear la población. Notar que la priori que seleccionamos en la parte b del ejercicio 8.14 era mucho más acertada que la dada por el autor del libro. En nuestra priori la proporción era de \~16%, mucho menor que el \~33% dado proporcionado por el libro. Esto indica que nos encontrabamos más informados sobre el tema que el autor.
+**d.** Se concluye que la proporción de adultos que no cree en el cambio climático es mucho menor que la creída inicialente.
+
+Inicialmente, realizando un contraste de hipótesis se mostró que se rechazó la hipótesis nula, por lo tanto se penso que la proporción era mayor al 10%. Asimismo, se calculó un intervalo de confianza, en cual se midió que con 95% de confianza que dicha proporción sería entre 0.129 y 1.733 (observar que la media posterior es de 0.15). Luego, al muestrear la poblacion, se actualizó la información. Notar que la priori que seleccionamos en la parte b del ejercicio 8.14 era mucho más acertada que la dada por el autor del libro. En nuestra priori la proporción era de \~16%, mucho menor que el \~33% dado proporcionado por el libro. Esto indica que nos encontrabamos más informados sobre el tema que el autor.
 
 \newpage
 
 ## Ejercicio 8.16
 
-![](letra8.16.png){fig-align="center"}
+![](letra8.16.png){fig-align="center"} Procederemos a simular la proporcion $\pi$ con Rstan. Para ello definiremos el modelo:
+
+```{r, message=FALSE}
+bb_model <- "
+  data {
+    int<lower = 0, upper = 1000> Y;
+  }
+  parameters {
+    real<lower = 0, upper = 1> pi;
+  }
+  model {
+    Y ~ binomial(1000, pi);
+    pi ~ beta(1, 2);
+  }
+  "
+```
+
+Con ste modelo, correremos las cadenas y graficaremos sus principales graficos:
+
+```{r, include=FALSE}
+bb_sim <- stan(model_code = bb_model, data = list(Y = 150), 
+               chains = 4, iter = 5000*2, seed = 84735)
+```
+
+```{r, fig.width=12, fig.height=8, fig.align='center', echo=FALSE}
+traza <- mcmc_trace(bb_sim, pars = "pi", size = 0.1)
+
+densoverlay <- mcmc_dens_overlay(bb_sim, pars = "pi") + 
+  ylab("density")
+
+hist <- mcmc_hist(bb_sim, pars = "pi") + 
+  yaxis_text(TRUE) + 
+  ylab("density")
+
+dens <- mcmc_dens(bb_sim, pars = "pi") + 
+  yaxis_text(TRUE) + 
+  ylab("density")
+
+(traza + densoverlay) / (hist + dens)
+```
+
+En la traza se observa un comportamiento deseado, donde aparantemente todas estas se mezclaron correctamente y donde tampoco se observa ninguna considerablemente distinta al restos. Procederemos a graficarlas luego por separado para asegurarnos que efectivamente esto haya sido asi.
+
+En el gráfico de densidades se aprecia que las cuatro cadenas producen distribuciones prácticamente iguales, superponiendose entre elleas. Al observarlas superpuestas se visualiza claramente que todas convergen hacia la misma distribución posterior, lo que refuerza la evidencia de estabilidad mencionada y homogeneidad entre cadenas que mencionamos al mirar las trazas.
+
+El histograma muestra la distribución empírica de los valores simulados de $\pi$, con una forma aproximadamente simétrica y unimodal entorno a 0.150, que era la proporcion inicial. Esto sugiere que las muestras extraídas representan de manera adecuada la forma de la distribución posterior.
+
+Por último, la densidad suavizada resume la distribución total combinando todas las cadenas. Su forma es continua y bien definida, tambien unimodal, simetrica y centrada entornoa 0.150, lo que confirma que el muestreo fue eficiente y que el parámetro $\pi$ se encuentra bien modelado.
+
+Procederemos a mirar las cadenas por separado:
+
+```{r,  echo=FALSE}
+cadenas <- extract(bb_sim, permuted = FALSE)
+pi_cadenas <- cadenas[, , "pi"]
+
+p1 <- ggplot(data.frame(iter = 1:nrow(pi_cadenas),
+                        value = pi_cadenas[, 1]),
+             aes(x = iter, y = value)) +
+  geom_line(color = "steelblue") +
+  labs(title = "Cadena 1",
+       x = "Iteración", y = expression(pi)) +
+  theme_minimal()
+
+p2 <- ggplot(data.frame(iter = 1:nrow(pi_cadenas),
+                        value = pi_cadenas[, 2]),
+             aes(x = iter, y = value)) +
+  geom_line(color = "steelblue") +
+  labs(title = "Cadena 2",
+       x = "Iteración", y = expression(pi)) +
+  theme_minimal()
+
+p3 <- ggplot(data.frame(iter = 1:nrow(pi_cadenas),
+                        value = pi_cadenas[, 3]),
+             aes(x = iter, y = value)) +
+  geom_line(color = "steelblue") +
+  labs(title = "Cadena 3",
+       x = "Iteración", y = expression(pi)) +
+  theme_minimal()
+
+p4 <- ggplot(data.frame(iter = 1:nrow(pi_cadenas),
+                        value = pi_cadenas[, 4]),
+             aes(x = iter, y = value)) +
+  geom_line(color = "steelblue") +
+  labs(title = "Cadena 4",
+       x = "Iteración", y = expression(pi)) +
+  theme_minimal()
+
+p1+p2+p3+p4
+```
+
+Las trazas correspondientes a las cuatro cadenas muestran un comportamiento estable y sin tendencia, oscilando alrededor de 0.150, que es la proporcion obtenida anteriormente. Dado que se centran en este valor y no se observan estancamientos ni saltos abruptos, nos damos cuenta que las cadenas han alcanzado la zona estacionaria y presentan buena mezcla. En conjunto, las trazas son sanas, por lo que los resultados posteriores pueden considerarse representativos.
+
+Si comparamos el histograma con la densidad teorica que hallamos anteriormente:
+
+```{r, fig.align='center', echo=FALSE, fig.width=5, fig.height=3, fig.align='center'}
+p <- mcmc_dens(as.matrix(bb_sim, pars = "pi"))
+dens_mcmc <- density(as.matrix(bb_sim)[, "pi"])
+max_mcmc <- max(dens_mcmc$y)
+p + stat_function(
+  fun = function(x) dbeta(x, shape1 = 151, shape2 = 852) * (max_mcmc / max(dbeta(seq(0,1,0.001), 151, 852))),
+  color = "red",
+  linetype = "dashed",
+  linewidth = 1
+) +
+  labs(
+    title = "Comparación: Aproximación MCMC vs. Posterior Teórico",
+    subtitle = "La curva roja punteada representa la densidad teórica Beta(151, 852)"
+  )
+```
+
+Facilmente se observa que los datos simularon correctamente el modelo.
+
+**Parte c**.
+
+El **rhat** es una medida que compara la convergencia entre cadenas. Basicamente compara la convergencia dentro de cada una de las cadenas con la variabilidad entre ellas. Si todas las cadenas convergieron a lo mismo, que es lo que queremos, el rhat sera aproximadamente 1.
+
+Por otro lado tenemos el **neff_ratio**, que es una medida que mira la independencia entre valores. Tiene que ver con la autocorrelacion de la cadena, y buscamos que sea lo mas alta posible. Ademas es util para estimar cuantos de mis valores simulados son efectivamente independientes.
+
+En este caso no contamos explicitamente con el neff_ratio, sino que lo calcularemos calculando el ess_bulk sobre n. El **ess_bulk** es la estimacion la cantidad de valores que fueron muestreados de forma independiente:
+
+```{r, echo=FALSE}
+
+draws <- as_draws_df(bb_sim)
+resumen <- summarise_draws(draws)[, c("variable", "rhat", "ess_bulk")]
+resumen <- subset(resumen, variable != "lp__", select = c("variable", "rhat", "ess_bulk"))
+
+# mostrar en tabla
+kable(resumen, caption = "Rhat y ess_bulk  para mu")
+```
+
+Por lo tanto, al ser el rhat tan cercano a 1 concluimos que cada una de las cadenas tuvo buena convergencia.
+
+Por otro lado, el neff_ratio es:
+
+$$\text{ESS ratio} = \frac{N_{\text{eff}}}{N} = \frac{7370}{20000}  = 0.3685$$
+
+Esto nos sugiere que 7370 valores aproximadamente son independientes, o de otra manera, casi el 37% de los valores fueron independientes.
+
+Para confirmarlo, podemos graficar la auto-relacion de la cadena:
+
+```{r, echo=FALSE}
+library(bayesplot)
+mcmc_acf(as.array(bb_sim), pars = "pi", lags = 10)
+```
+
+Se observa que para unn lag de 4, en todas las cadenas la autocorrelacion es practicamente nula.
 
 \newpage
 
@@ -241,21 +396,44 @@ Observación: Una priori no informativa es más débil, tiene una varianza muy g
 
 Lo que haremos será ejecutar el código proporcionado por el docente y se irán guardando todos los resultados en una tabla, la cual hará la visualización de las diferencias más clara.
 
+Este paso es fundamental para comprender la robustez del modelo. Si pequeñas variaciones en los hiperparámetros generan grandes cambios en los resultados, significa que el modelo depende fuertemente de las creencias previas y es menos estable. Si, en cambio, los resultados se mantienen similares, indica que la información proviene principalmente de los datos y que la elección de los hiperparametros no rompe las conclusiones que podamos obtener.
+
+De esta manera:
+
+```{=tex}
+\begin{itemize}
+  \item \textbf{$\theta_0$} — Controla la \textit{media previa de $\theta$}.  
+  Es lo que a priori creemos que vale el promedio logarítmico de los datos.  
+  Es como decir: “Antes de ver los datos, creo que $\theta$ está cerca de este valor.”
+
+  \item \textbf{$\tau^2$} — Controla la \textit{varianza previa de $\theta$}.  
+  Indica cuán fuerte es esa creencia:  
+  \begin{itemize}
+    \item Si $\tau^2$ es grande $\rightarrow$ prior débil (creencia difusa, abierta a aprender de los datos).  
+    \item Si $\tau^2$ es chica $\rightarrow$ prior fuerte (estás muy convencido de $\theta_0$).  
+  \end{itemize}
+
+  \item \textbf{$\alpha$ y $\beta$} — Dan forma a la \textit{distribución a priori de $\sigma^2$}.  
+  Cuanto más grandes son, más “informativa” y concentrada es la creencia sobre la varianza:  
+  \begin{itemize}
+    \item Si $\alpha = \beta = 0.1$ $\rightarrow$ prior muy débil.  
+    \item Si $\alpha = \beta = 10$ $\rightarrow$ prior muy fuerte.  
+  \end{itemize}
+\end{itemize}
+```
 Utilizaremos los siguientes valores para realizar la comparación:
 
-```{r, echo=FALSE}
-#OBS: las tablas se realizaron con la función de crear tablas de Quarto.
-```
+| Caso | $\alpha$ | $\beta$ | $\tau^2$ | $\theta_0$ | ¿Qué se evalúa?                                                                                             |
+|---------|---------|---------|---------|---------|---------------------------|
+| 1    | 3.0      | 3.0     | 10.0     | 5.0        | Valores iniciales del problema (neutrales)                                                                  |
+| 2    | 0.1      | 0.1     | 10.0     | 5.0        | Valores no informativos sobre $\tau^2$                                                                      |
+| 3    | 10.0     | 10.0    | 10.0     | 5.0        | Valores informativos sobre $\tau^2$                                                                         |
+| 4    | 3.0      | 3.0     | 100.0    | 5.0        | Valores no informativos sobre $\theta_0$                                                                    |
+| 5    | 3.0      | 3.0     | 0.1      | 5.0        | Valores informativos sobre $\theta_0$                                                                       |
+| 6    | 3.0      | 3.0     | 10.0     | 6.6        | Utilización de la media (theta0 está centrada en los datos dados)                                           |
+| 7    | 3.0      | 3.0     | 10.0     | 0.0        | Valor de $\theta_0$ que muestra una creencia sobre que el hiperparámeto no está centrado en los datos dados |
 
-| Caso | alpha | beta | tau\^2 | theta0 | ¿Qué se evalúa? |
-|-------|-------|------|--------|--------|--------------------------------------|
-| 1 | 3.0 | 3.0 | 10.0 | 5.0 | Valores iniciales del problema (neutrales) |
-| 2 | 0.1 | 0.1 | 10.0 | 5.0 | Valores no informativos de tau\^2 |
-| 3 | 10.0 | 10.0 | 10.0 | 5.0 | Valores informativos de tau\^2 |
-| 4 | 3.0 | 3.0 | 100.0 | 5.0 | Valores no informativos de theta0 |
-| 5 | 3.0 | 3.0 | 0.1 | 5.0 | Valores informativos de theta0 |
-| 6 | 3.0 | 3.0 | 10.0 | 6.6 | Utilización de la media (theta0 está centrada en los datos dados) |
-| 7 | 3.0 | 3.0 | 10.0 | 0.0 | Valor de theta0 que muestra una creencia sobre que el hiperparámeto no está centrado en los datos dados |
+Nota: las tablas se realizaron con la función de crear tablas de Quarto.
 
 ```{r, message=FALSE, warning=FALSE, results='hide', echo=FALSE}
 ### Ejemplo 7.3, pp.202-205
@@ -375,15 +553,35 @@ grid.arrange(p_theta, p_sigma2, ncol = 2)
 
 Evaluando los valores de los hiperparámetros en cada caso se obtiene la siguiente tabla de resultados:
 
-| Caso | Media a posteriori de theta | Media a posteriori de sigma | Intervalo de Confianza del 90% para theta | Intervalo de Confianza del 90% para sigma |
-|-------|-------------|--------------|---------------|---------------|
-| 1 | 6.622 | 0.797 | (6.290 ; 6.945) | (0.615 ; 1.039) |
-| 2 | 6.220 | 0.696 | (6.333 ; 6.908) | (0.510 ; 0.948) |
-| 3 | 6.230 | 0.888 | (6.257 ; 6.987) | (0.727; 1.091) |
-| 4 | 6.628 | 0.797 | (6.295 ; 6.953) | (0.615 ; 1.039) |
-| 5 | 6.049 | 0.948 | (5.637 ; 6.409) | (0.688 ; 1.308) |
-| 6 | 6.628 | 0.797 | (6.297 ; 6.953) | (0.615 ; 1.039) |
-| 7 | 6.601 | 0.798 | (6.269 ; 6.924) | (0.616 ; 1.041) |
+| Caso | ¿Qué se evalúa?                                                                                             | Media a posteriori de $\theta$ | Media a posteriori de $\sigma$ | Intervalo de Confianza del 90% para $\theta$ |
+|---------------|---------------|---------------|---------------|---------------|
+| 1    | Valores iniciales del problema (neutrals)                                                                   | 6.622                          | 0.797                          | (6.290 ; 6.945)                              |
+| 2    | Valores no informativos sobre $\tau^2$                                                                      | 6.220                          | 0.696                          | (6.333 ; 6.908)                              |
+| 3    | Valores informativos sobre $\tau^2$                                                                         | 6.230                          | 0.888                          | (6.257 ; 6.987)                              |
+| 4    | Valores no informativos sobre $\theta_0$                                                                    | 6.628                          | 0.797                          | (6.295 ; 6.953)                              |
+| 5    | Valores informativos sobre $\theta_0$                                                                       | 6.049                          | 0.948                          | (5.637 ; 6.409)                              |
+| 6    | Utilización de la media ($theta_0$ está centrada en los datos dados)                                        | 6.628                          | 0.797                          | (6.297 ; 6.953)                              |
+| 7    | Valor de $\theta_0$ que muestra una creencia sobre que el hiperparámeto no está centrado en los datos dados | 6.601                          | 0.798                          | (6.269 ; 6.924)                              |
+
+Antes de comentar el analisis, se calculara la media de los datos y su desvio estandar. Esto sera util para poder evaluar que tan parecido a las observaciones es nuestro posterior obtenido.
+
+```{r, echo=FALSE}
+tabla_aux<-data.frame(
+  Nombres=c("Media de theta0", "Desvio estandar de sigma"),
+  Valores=c(mean(lx), sd(lx))
+)
+kable(tabla_aux, caption= "Resumen Observaciones")
+```
+
+En primer lugar se observa que en todos los casos, la media oscila entre 6.0 y 6.6, independientemente de los distintos hiperparametros que hayamos tomado en cada uno de los ejemplos. Esto sugiere cierta consistencia en los datos y del modelo. Teniendo en cuenta que estamos trabajando con un vector de tan solo 16 observaciones, podemos pensar que el modelo es bueno dado que no necesita un tamano demasiado grande para converger al posterior. En otras palabras, este Gibbs Sampling converge hacia resultados consistentes incluso cuando las creencias iniciales difieren, lo que es una señal de estabilidad del modelo.
+
+Como era de esperar en el **caso 1**, donde los hiperparametros son $\alpha=3$, $\beta=3$ y $\tau^2=10$ , el posterior es parecido a las observaciones.
+
+Sera util como escenario base, donde el posterior se centra muy cerca de la media observada de posterior (6.6) y el desvío (0.8) es prácticamente igual al de los datos. Refleja una buena calibración del modelo: la información de los datos domina, y las creencias previas no sesgan significativamente los resultados.
+
+En el **caso dos**, al reducir $\alpha \ \text{y} \ \beta$ debilitamos la creencia previa sobre $\sigma^2$, lo que refleja incertidumbre sobre la dispersión.
+
+Esto genera una leve caida con respecto a la media de $\theta_0$ y crece la varianza. Este ultimo efecto era sumamente esperable, dado que el prior no aporta ninguna seguridad
 
 Asimismo, utilizando el código proporcionado por el profesor, también se pueden hacer gráficas para visualizar cada caso. Podemos verlo en la siguiente imagen, ordenadas por caso de izquierda a derecha.
 
@@ -391,47 +589,47 @@ Asimismo, utilizando el código proporcionado por el profesor, también se puede
 
 Por otro lado, también se pueden visualizar dos casos más distintivos: uno donde todos los valores de los hiperparámetros son poco informativos y otro donde todos los valores de los hiperparámetros son muy informativos.
 
-Primer caso: Una priori muy poco informativa:
+**Primer caso**: Una priori muy poco informativa.
 
-Aquí, alpha=0.1, beta=0.1, tau\^2=100.0, y theta0=0.0. Obtenemos:
+Aquí, $\alpha$=$\beta$=0.1, $\tau^2$=100.0, y $\theta_0$=0.0. Obtenemos:
 
-Media de posteriori de theta: 6.625
+Media de posteriori de $\theta$=6.625.
 
-Media de posteriori de sigma: 0.696
+Media de posteriori de $\sigma$=0.696
 
-Intervalo de confianza al 90% para theta: (6.341 ; 6.911)
+Intervalo de confianza al 90% para $\theta$: (6.341 ; 6.911)
 
-Intervalo de confianza al 90% para sigma: (0.510 ; 0.947)
+Intervalo de confianza al 90% para $\sigma$: (0.510 ; 0.947)
 
 El histograma es el siguiente: ![](histpocainfo.png){fig-align="center"}
 
-Segundo caso: Una priori muy informativa:
+**Segundo caso**: Una priori muy informativa.
 
-Aquí, alpha=10.0 beta=10.0, tau\^2=0.1, y theta0=6.6. Obtenemos:
+Aquí, $\alpha$=$\beta$=10.0, $tau\^2$=0.1, y $theta_0$=6.6. Obtenemos:
 
-Media de posteriori de theta: 6.621
+Media de posteriori de $\theta$: 6.621
 
-Media de posteriori de sigma: 0.883
+Media de posteriori de $\sigma$: 0.883
 
-Intervalo de confianza al 90% para theta: (6.326 ; 6.916)
+Intervalo de confianza al 90% para $\theta$: (6.326 ; 6.916)
 
-Intervalo de confianza al 90% para sigma: (0.725 ; 1.082)
+Intervalo de confianza al 90% para $\sigma$: (0.725 ; 1.082)
 
 El histograma es el siguiente:
 
 ![](histmuchainfo.png){fig-align="center"}
 
-Ahora volvamos a comparar con nuestro "caso base". los datos neutrales que nos proporcionaron inicialmente:
+Ahora volvamos a comparar con nuestro "caso base", los datos neutrales que nos proporcionaron inicialmente:
 
-Aquí, alpha=3.0, beta=3.0, tau\^2=10.0, y theta0=5.0. Obtenemos:
+Aquí, $\alpha$=3.0, $\beta$=3.0, $tau^2$=10.0, y $\theta_0$=5.0. Obtenemos:
 
-Media de posteriori de theta: 6.622
+Media de posteriori de $\theta$=6.622
 
-Media de posteriori de sigma: 0.797
+Media de posteriori de $\sigma$=0.797
 
-Intervalo de confianza al 90% para theta: (6.290 ; 6.945)
+Intervalo de confianza al 90% para $\theta$: (6.290 ; 6.945)
 
-Intervalo de confianza al 90% para sigma: (0.615 ; 1.039)
+Intervalo de confianza al 90% para $\sigma$: (0.615 ; 1.039)
 
 El histograma es el siguiente:
 
