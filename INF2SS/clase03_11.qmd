@@ -1,0 +1,553 @@
+---
+title: "Regresion Simple Predictiva"
+format: pdf
+editor: visual
+---
+
+```{r}
+# Load packages
+library(bayesrules)
+library(tidyverse)
+library(rstan)
+library(rstanarm)
+library(bayesplot)
+library(tidybayes)
+library(janitor)
+library(broom.mixed)
+data(bikes)
+```
+
+```{r}
+rm(list=ls())
+# Cargar y graficar los datos
+data(bikes)
+ggplot(bikes, aes(x = temp_feel, y = rides)) + 
+  geom_point(size = 0.5) + 
+  geom_smooth(method = "lm", se = TRUE)
+```
+
+```{r}
+# Ajuste de un modelo bayesiano con stan_glm
+bike_model <- stan_glm(rides ~ temp_feel, data = bikes, family = gaussian,
+        prior_intercept = normal(5000, 1000),
+        prior = normal(100, 40), 
+        prior_aux = exponential(0.0008),
+        chains = 4, iter = 5000*2, seed = 84735)
+```
+
+```{r}
+# Tamaño efectivo de muestra y Rhat
+neff_ratio(bike_model)  #bayesplot
+
+rhat(bike_model)
+```
+
+```{r}
+# Gráfico de cadenas paralelas (trazas)
+mcmc_trace(bike_model, size = 0.1)
+```
+
+```{r}
+# Gráfico de densidades superpuestas de las cadenas
+mcmc_dens_overlay(bike_model)
+```
+
+```{r}
+# Estadísticas resumen del posterior
+tidy(bike_model, effects = c("fixed", "aux"),
+     conf.int = TRUE, conf.level = 0.80)
+```
+
+```{r}
+# Guardar las cuatro cadenas para cada parámetro en un data frame
+bike_model_df <- as.data.frame(bike_model)
+
+# Chequear el número de filas
+nrow(bike_model_df)
+```
+
+```{r}
+head(bike_model_df, 3)
+
+```
+
+
+```{r}
+# 50 líneas simuladas del modelo
+bikes %>%
+  add_epred_draws(object = bike_model, ndraws = 150) %>%
+  ggplot(aes(x = temp_feel, y = rides)) +
+  geom_line(aes(y = .epred, group = .draw), alpha = 0.15) + 
+  geom_point(data = bikes, size = 0.05)
+```
+
+```{r}
+# Tabular los valores de beta_1 que exceden 0  #janitor
+bike_model_df %>% 
+  mutate(exceeds_0 = temp_feel > 0) %>% 
+  tabyl(exceeds_0)
+# exceeds_0     n percent
+#      TRUE 20000       1
+
+```
+
+```{r}
+# Simular cuatro conjuntos de datos
+bikes %>%
+  add_predicted_draws(bike_model, ndraws = 4) %>%
+  ggplot(aes(x = temp_feel, y = rides)) +
+  geom_point(aes(y = .prediction, group = .draw), size = 0.2) + 
+  facet_wrap(~ .draw)
+```
+
+```{r}
+# Construir modelo predictivo a posteriori
+
+first_set <- head(bike_model_df, 1)
+first_set
+```
+
+```{r}
+mu <- first_set$`(Intercept)` + first_set$temp_feel * 75
+mu
+
+set.seed(84735)
+y_new <- rnorm(1, mean = mu, sd = first_set$sigma)
+y_new
+```
+
+```{r}
+# Predecir viajes para cada conjunto de parámetros de la cadena
+set.seed(84735)
+predict_75 <- bike_model_df %>% 
+  mutate(mu = `(Intercept)` + temp_feel*75,
+         y_new = rnorm(20000, mean = mu, sd = sigma))
+
+head(predict_75, 3)
+```
+
+```{r}
+# Construir:
+# intervalos de credibilidad para el número típico de viajes en bicicleta en un día de 75°F
+# intervalos de predicción a posteriori para el número de viajes en bicicleta
+predict_75 %>% 
+  summarize(lower_mu = quantile(mu, 0.025),
+            upper_mu = quantile(mu, 0.975),
+            lower_new = quantile(y_new, 0.025),
+            upper_new = quantile(y_new, 0.975))
+#   lower_mu upper_mu lower_new upper_new
+# 1 3842.508 4093.436  1492.104  6488.281
+```
+
+```{r}
+# Graficar el modelo posterior de viajes típicos para 75°F
+ggplot(predict_75, aes(x = mu)) + 
+  geom_density()
+```
+
+```{r}
+# Graficar el modelo predictivo posterior de viajes para mañana
+ggplot(predict_75, aes(x = y_new)) + 
+  geom_density()
+```
+
+```{r}
+library(gridExtra)
+# Calcular la densidad de mu para obtener el límite Y máximo
+dens_mu <- density(predict_75$mu)
+ymax <- max(dens_mu$y)
+```
+
+```{r}
+# Primer gráfico: densidad de mu
+p1 <- ggplot(predict_75, aes(x = mu)) +
+  geom_density() +
+  ylim(0, ymax) +
+  labs(title = "Posteriori de mu (media esperada)")
+
+```
+
+
+```{r}
+# Segundo gráfico: densidad de y_new (predicción posterior)
+p2 <- ggplot(predict_75, aes(x = y_new)) +
+  geom_density() +
+  ylim(0, ymax) +
+  labs(title = "Posteriori predictiva (y_new)")
+
+```
+
+
+```{r}
+# Comparación dos gráfico modelos a posteriori
+grid.arrange(p1, p2, nrow = 1)
+```
+
+
+```{r}
+# Predicción a posteriori con rstanarm
+
+# Simular un conjunto de predicciones
+set.seed(84735)
+shortcut_prediction <- 
+  posterior_predict(bike_model, newdata = data.frame(temp_feel = 75))
+```
+
+
+```{r}
+# Construir un intervalo de credibilidad a posteriori al 95%
+posterior_interval(shortcut_prediction, prob = 0.95)
+```
+
+```{r}
+# Graficar modelo predictivo aproximado
+mcmc_dens(shortcut_prediction) + 
+  xlab("viajes predichos para un día de 75°F")
+```
+
+```{r}
+# Modelización de regresión secuencial
+
+bikes %>% 
+  select(date, temp_feel, rides) %>% 
+  head(3)
+#         date temp_feel rides
+# 1 2011-01-01  64.72625   654
+# 2 2011-01-03  49.04645  1229
+# 3 2011-01-04  51.09098  1454
+
+phase_1 <- bikes[1:30, ]
+phase_2 <- bikes[1:60, ]
+phase_3 <- bikes
+```
+
+
+```{r}
+# Ajustar modelos para cada fase
+my_model_1 <- stan_glm(rides ~ temp_feel, data = phase_1, family = gaussian, 
+        prior_intercept = normal(5000, 1000),
+        prior = normal(100, 40), 
+        prior_aux = exponential(0.0008),
+        chains = 4, iter = 5000*2, seed = 84735)
+
+my_model_2 <- stan_glm(rides ~ temp_feel, data = phase_2, family = gaussian, 
+        prior_intercept = normal(5000, 1000),
+        prior = normal(100, 40), 
+        prior_aux = exponential(0.0008),
+        chains = 4, iter = 5000*2, seed = 84735)
+
+my_model_3 <- stan_glm(rides ~ temp_feel, data = phase_3, family = gaussian, 
+        prior_intercept = normal(5000, 1000),
+        prior = normal(100, 40), 
+        prior_aux = exponential(0.0008),
+        chains = 4, iter = 5000*2, seed = 84735)
+```
+
+
+```{r}
+# Extraer distribuciones posteriores de beta_1 (pendiente)
+betas_1 <- as.data.frame(my_model_1)$temp_feel
+betas_2 <- as.data.frame(my_model_2)$temp_feel
+betas_3 <- as.data.frame(my_model_3)$temp_feel
+
+```
+
+
+```{r}
+# Rango común para el eje x 
+# y el máximo para el eje y
+all_betas <- c(betas_1, betas_2, betas_3)
+dens_max <- max(
+  density(betas_1)$y,
+  density(betas_2)$y,
+  density(betas_3)$y
+)
+xlim_rng <- range(all_betas)
+```
+
+
+```{r}
+# Crear los gráficos de densidad
+p1 <- ggplot(data.frame(beta1 = betas_1), aes(x = beta1)) +
+  geom_density(fill = "#3182bd", alpha = 0.6) +
+  xlim(xlim_rng) +
+  ylim(0, dens_max) +
+  labs(title = "Phase 1", x = expression(beta[1]), y = NULL) +
+  theme_minimal()
+
+p2 <- ggplot(data.frame(beta1 = betas_2), aes(x = beta1)) +
+  geom_density(fill = "#3182bd", alpha = 0.6) +
+  xlim(xlim_rng) +
+  ylim(0, dens_max) +
+  labs(title = "Phase 2", x = expression(beta[1]), y = NULL) +
+  theme_minimal()
+
+p3 <- ggplot(data.frame(beta1 = betas_3), aes(x = beta1)) +
+  geom_density(fill = "#3182bd", alpha = 0.6) +
+  xlim(xlim_rng) +
+  ylim(0, dens_max) +
+  labs(title = "Phase 3", x = expression(beta[1]), y = NULL) +
+  theme_minimal()
+```
+
+```{r}
+# Mostrar los tres gráficos en una fila
+grid.arrange(p1, p2, p3, nrow = 1)
+
+```
+
+
+```{r}
+# Número de simulaciones a graficar (100 lineas a posteriori)
+nlines <- 100
+```
+
+
+```{r}
+# Extraer nlines muestras aleatorias de las cadenas para cada modelo
+set.seed(84735)
+draws1 <- as.data.frame(my_model_1)[sample(1:nrow(as.data.frame(my_model_1)), nlines), ]
+draws2 <- as.data.frame(my_model_2)[sample(1:nrow(as.data.frame(my_model_2)), nlines), ]
+draws3 <- as.data.frame(my_model_3)[sample(1:nrow(as.data.frame(my_model_3)), nlines), ]
+```
+
+```{r}
+# Función para construir las líneas simuladas posterior median para cada fase
+make_phase_plot <- function(phase_dat, draws, title) {
+  # Calcular la mediana de los parámetros
+  intercept_med <- median(draws$`(Intercept)`)
+  slope_med <- median(draws$temp_feel)
+  
+  ggplot(phase_dat, aes(x = temp_feel, y = rides)) +
+    geom_point(size = 1) +
+    # 100 líneas simuladas de la posterior
+    geom_abline(aes(intercept = `(Intercept)`, slope = temp_feel),
+                data = draws, color = "#2171b5", alpha = 0.2, size = 0.7) +
+    # Línea azul: regresión posterior mediana
+    geom_abline(intercept = intercept_med, slope = slope_med,
+                color = "#2171b5", size = 1.2) +
+    labs(title = title, x = "temp_feel", y = "rides") +
+    coord_cartesian(xlim = c(40, 90), ylim = c(0, 7000)) +
+    theme_minimal()
+}
+
+p1 <- make_phase_plot(phase_1, draws1, "Phase 1")
+p2 <- make_phase_plot(phase_2, draws2, "Phase 2")
+p3 <- make_phase_plot(phase_3, draws3, "Phase 3")
+
+grid.arrange(p1, p2, p3, nrow = 1)
+```
+
+
+```{r}
+# Empleo de las distribuciones a priori ajustadas propuestas por rstanarm
+
+bike_model_default <- stan_glm(
+  rides ~ temp_feel, data = bikes, 
+  family = gaussian,
+  prior_intercept = normal(5000, 2.5, autoscale = TRUE),
+  prior = normal(0, 2.5, autoscale = TRUE), 
+  prior_aux = exponential(1, autoscale = TRUE),
+  chains = 4, iter = 5000*2, seed = 84735)
+
+prior_summary(bike_model_default)
+```
+
+
+```{r}
+# Simular a partir de los priors
+bike_default_priors <- update(bike_model_default, prior_PD = TRUE)
+
+```
+
+
+```{r}
+# 200 líneas simuladas del modelo con las priori
+bikes %>%
+add_epred_draws(object = bike_default_priors, ndraws = 200) %>%
+  ggplot(aes(x = temp_feel, y = rides)) +
+  geom_line(aes(y = .epred, group = .draw), alpha = 0.15)
+```
+
+```{r}
+# 4 conjuntos de datos simulados usando únicamente las priori
+set.seed(3)
+bikes %>%
+  add_predicted_draws(bike_default_priors, ndraws = 4) %>%
+  ggplot(aes(x = temp_feel, y = rides)) +
+  geom_point(aes(y = .prediction, group = .draw)) + 
+  facet_wrap(~ .draw)
+
+```
+
+
+```{r}
+## Comprobación de los supuestos del modelo
+first_set <- head(bike_model_df, 1)
+first_set
+
+beta_0 <- first_set$`(Intercept)`
+beta_1 <- first_set$temp_feel
+sigma  <- first_set$sigma
+set.seed(84735)
+one_simulation <- bikes %>% 
+  mutate(mu = beta_0 + beta_1 * temp_feel,
+         simulated_rides = rnorm(500, mean = mu, sd = sigma)) %>% 
+  select(temp_feel, rides, simulated_rides)
+
+head(one_simulation, 2)
+
+ggplot(one_simulation, aes(x = simulated_rides)) + 
+  geom_density(color = "lightblue") + 
+  geom_density(aes(x = rides), color = "darkblue")
+```
+
+```{r}
+# Se examinan 50 de las 20000 muestras simuladas
+pp_check(bike_model, nreps = 50) + 
+  xlab("rides")
+```
+
+
+```{r}
+## Resúmenes predictivos a posteriori
+bikes %>% 
+  filter(date == "2012-10-22") %>% 
+  select(temp_feel, rides)
+#   temp_feel rides
+# 1     75.46  6228
+```
+
+```{r}
+# Simular el modelo predictivo a posteriori
+set.seed(84735)
+predict_75 <- bike_model_df %>% 
+  mutate(mu = `(Intercept)` + temp_feel*75,
+         y_new = rnorm(20000, mean = mu, sd = sigma))
+```
+
+
+```{r}
+# Calcular densidad explícitamente
+dens <- density(predict_75$y_new)
+# Encontrar la y correspondiente a x=6228
+# Si 6228 no está exactamente en x, se interpola:
+yline <- approx(x = dens$x, y = dens$y, xout = 6228)$y
+```
+
+
+```{r}
+# Graficar el modelo predictivo a posteriori
+ggplot(predict_75, aes(x = y_new)) +
+  geom_density() +
+  annotate("segment", x = 6228, xend = 6228,
+           y = 0, yend = yline,
+           color = "#2171b5", size = 1.1) +
+  labs(x = expression(y[new]), y = "Densidad")
+```
+
+
+```{r}
+predict_75 %>% 
+  summarize(mean = mean(y_new), error = 6228 - mean(y_new))
+#  mean error
+#1 3967  2261
+
+predict_75 %>% 
+  summarize(sd = sd(y_new), error = 6228 - mean(y_new), error_scaled = error / sd(y_new))
+#     sd error error_scaled
+# 1 1280  2261        1.767
+
+predict_75 %>% 
+  summarize(lower_95 = quantile(y_new, 0.025),
+            lower_50 = quantile(y_new, 0.25),
+            upper_50 = quantile(y_new, 0.75),
+            upper_95 = quantile(y_new, 0.975))
+```
+
+```{r}
+set.seed(84735)
+predictions <- posterior_predict(bike_model, newdata = bikes)
+dim(predictions)
+#[1] 20000   500
+
+ppc_intervals(bikes$rides, yrep = predictions, x = bikes$temp_feel, prob = 0.5, prob_outer = 0.95)
+```
+
+```{r}
+et.seed(84735)
+# Seleccionar muestra aleatoria de 25 días
+bikes_25 <- bikes %>% sample_n(25)
+
+# Predicciones posteriores sólo para esos 25 días
+predictions_25 <- posterior_predict(bike_model, newdata = bikes_25)
+
+# Opcional: chequear las dimensiones (debería ser 20000 x 25)
+dim(predictions_25)
+```
+
+```{r}
+# Gráfico PPC intervals para la muestra de 25 días
+ppc_intervals(
+  y = bikes_25$rides,
+  yrep = predictions_25,
+  x = bikes_25$temp_feel,
+  prob = 0.5,
+  prob_outer = 0.95
+)
+```
+
+
+```{r}
+# Resúmenes predictivos posteriores
+set.seed(84735)
+prediction_summary(bike_model, data = bikes)
+#     mae mae_scaled within_50 within_95
+# 1 989.7     0.7712     0.438     0.968
+```
+
+```{r}
+set.seed(84735)
+cv_procedure <- prediction_summary_cv(
+  model = bike_model, data = bikes, k = 10)
+cv_procedure$folds
+#fold    mae mae_scaled within_50 within_95
+#1     1  990.2     0.7699      0.46      0.98
+#2     2  963.8     0.7423      0.40      1.00
+#3     3  951.3     0.7300      0.42      0.98
+#4     4 1018.6     0.7910      0.46      0.98
+#5     5 1161.5     0.9091      0.36      0.96
+#6     6  937.6     0.7327      0.46      0.94
+#7     7 1270.9     1.0061      0.32      0.96
+#8     8 1111.9     0.8605      0.36      1.00
+#9     9 1098.7     0.8679      0.40      0.92
+#10   10  786.8     0.6060      0.56      0.96
+cv_procedure$cv
+#     mae mae_scaled within_50 within_95
+# 1 1029     0.8015      0.42     0.968
+# Resúmenes predictivos posteriores para los datos originales
+set.seed(84735)
+prediction_summary(bike_model, data = bikes)
+#     mae mae_scaled within_50 within_95
+# 1 989.7     0.7712     0.438     0.968
+model_elpd <- loo(bike_model)
+model_elpd$estimates
+#Estimación      EE
+#elpd_loo  -4289.0 13.1186
+#p_loo         2.5  0.1638
+#looic      8578.1 26.2371
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
