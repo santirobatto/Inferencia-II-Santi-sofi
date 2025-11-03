@@ -309,10 +309,10 @@ Las cuatro gráficas de densidad estan casi perfectamente superpuestas. Esto con
 
 Finalmente, vamos a comparar la densidad simulada con la teórica, vamos a analizar una distribución Gamma.
 
-Nuestro modelo inicial es $\text{Gamma}(\alpha, \beta)$. Al observar $n$ datos con una suma de $\sum_{i=1}^{n} Y_i$, obtenemos el posterior:
-$$
+Nuestro modelo inicial es $\text{Gamma}(\alpha, \beta)$. Al observar $n$ datos con una suma de $\sum_{i=1}^{n} Y_i$, obtenemos el posterior: $$
 \lambda \mid Y \sim \text{Gamma}\left(\alpha + \sum_{i=1}^{n} Y_i, \beta + n\right)
 $$
+
 
 Aplicando esto a nuestros datos obtenemos: $\text{Gamma}(20, 5) \implies \alpha = 20, \beta = 5$ $0, 1, 0) \implies n = 3$ y $\sum Y_i = 0 + 1 + 0 = 1$
 
