@@ -71,7 +71,6 @@ head(bike_model_df, 3)
 
 ```
 
-
 ```{r}
 # 50 líneas simuladas del modelo
 bikes %>%
@@ -100,21 +99,30 @@ bikes %>%
   facet_wrap(~ .draw)
 ```
 
+# Construccion del modelo predictivo a posteriori desde 0
+
+Bike model df es el dataframe obtenido con los valores simulados via stan. cada fila representa un conjunto plausible de parámetros, que representan cada uno una regresión
+
 ```{r}
 # Construir modelo predictivo a posteriori
 
 first_set <- head(bike_model_df, 1)
 first_set
 ```
-
+Por ejemplo acá tomo el primer conjunto de parametros y hallo la  media esperada
 ```{r}
 mu <- first_set$`(Intercept)` + first_set$temp_feel * 75
 mu
+```
 
+Luego, para representar que no todos los das son de mu viajes, hago un muestreo aleatorio con la distribucion normal, obteniendo un nuevo "dato". 
+```{r}
 set.seed(84735)
 y_new <- rnorm(1, mean = mu, sd = first_set$sigma)
 y_new
 ```
+
+Teniendo en cuenta los valores de bikemodeldf, calculo 20.000 valores de mu y simulo 20.000 valores de ynew. 
 
 ```{r}
 # Predecir viajes para cada conjunto de parámetros de la cadena
@@ -125,7 +133,7 @@ predict_75 <- bike_model_df %>%
 
 head(predict_75, 3)
 ```
-
+Con eso construyo los intervalos de confianza de mu y de yneq 
 ```{r}
 # Construir:
 # intervalos de credibilidad para el número típico de viajes en bicicleta en un día de 75°F
@@ -139,12 +147,15 @@ predict_75 %>%
 # 1 3842.508 4093.436  1492.104  6488.281
 ```
 
+El primer gráfico (mu) muestra cómo varía la media esperada del número de viajes entre los distintos escenarios del modelo.
+Suele ser una curva más estrecha y concentrada (porque la media es bastante estable)
 ```{r}
 # Graficar el modelo posterior de viajes típicos para 75°F
 ggplot(predict_75, aes(x = mu)) + 
   geom_density()
 ```
-
+El segundo gráfico (y_new) muestra cómo varían las predicciones reales simuladas.
+Esta curva es más ancha y dispersa, porque incluye la variabilidad de los datos reales además de la de los parámetros.
 ```{r}
 # Graficar el modelo predictivo posterior de viajes para mañana
 ggplot(predict_75, aes(x = y_new)) + 
@@ -167,7 +178,6 @@ p1 <- ggplot(predict_75, aes(x = mu)) +
 
 ```
 
-
 ```{r}
 # Segundo gráfico: densidad de y_new (predicción posterior)
 p2 <- ggplot(predict_75, aes(x = y_new)) +
@@ -178,166 +188,20 @@ p2 <- ggplot(predict_75, aes(x = y_new)) +
 ```
 
 
+El gráfico combinado (grid.arrange(p1, p2)) te permite ver la diferencia entre:
+la incertidumbre del modelo (mu), y la incertidumbre del fenómeno real (y_new).
+
+En general: Posterior de mu: mide lo que el modelo “cree” sobre el promedio de viajes.
+Posterior predictiva de ynew: mide lo que el modelo espera observar en la práctica un día cualquiera con 75 °F.
+
+
 ```{r}
 # Comparación dos gráfico modelos a posteriori
 grid.arrange(p1, p2, nrow = 1)
-```
+```       
 
 
-```{r}
-# Predicción a posteriori con rstanarm
-
-# Simular un conjunto de predicciones
-set.seed(84735)
-shortcut_prediction <- 
-  posterior_predict(bike_model, newdata = data.frame(temp_feel = 75))
-```
-
-
-```{r}
-# Construir un intervalo de credibilidad a posteriori al 95%
-posterior_interval(shortcut_prediction, prob = 0.95)
-```
-
-```{r}
-# Graficar modelo predictivo aproximado
-mcmc_dens(shortcut_prediction) + 
-  xlab("viajes predichos para un día de 75°F")
-```
-
-```{r}
-# Modelización de regresión secuencial
-
-bikes %>% 
-  select(date, temp_feel, rides) %>% 
-  head(3)
-#         date temp_feel rides
-# 1 2011-01-01  64.72625   654
-# 2 2011-01-03  49.04645  1229
-# 3 2011-01-04  51.09098  1454
-
-phase_1 <- bikes[1:30, ]
-phase_2 <- bikes[1:60, ]
-phase_3 <- bikes
-```
-
-
-```{r}
-# Ajustar modelos para cada fase
-my_model_1 <- stan_glm(rides ~ temp_feel, data = phase_1, family = gaussian, 
-        prior_intercept = normal(5000, 1000),
-        prior = normal(100, 40), 
-        prior_aux = exponential(0.0008),
-        chains = 4, iter = 5000*2, seed = 84735)
-
-my_model_2 <- stan_glm(rides ~ temp_feel, data = phase_2, family = gaussian, 
-        prior_intercept = normal(5000, 1000),
-        prior = normal(100, 40), 
-        prior_aux = exponential(0.0008),
-        chains = 4, iter = 5000*2, seed = 84735)
-
-my_model_3 <- stan_glm(rides ~ temp_feel, data = phase_3, family = gaussian, 
-        prior_intercept = normal(5000, 1000),
-        prior = normal(100, 40), 
-        prior_aux = exponential(0.0008),
-        chains = 4, iter = 5000*2, seed = 84735)
-```
-
-
-```{r}
-# Extraer distribuciones posteriores de beta_1 (pendiente)
-betas_1 <- as.data.frame(my_model_1)$temp_feel
-betas_2 <- as.data.frame(my_model_2)$temp_feel
-betas_3 <- as.data.frame(my_model_3)$temp_feel
-
-```
-
-
-```{r}
-# Rango común para el eje x 
-# y el máximo para el eje y
-all_betas <- c(betas_1, betas_2, betas_3)
-dens_max <- max(
-  density(betas_1)$y,
-  density(betas_2)$y,
-  density(betas_3)$y
-)
-xlim_rng <- range(all_betas)
-```
-
-
-```{r}
-# Crear los gráficos de densidad
-p1 <- ggplot(data.frame(beta1 = betas_1), aes(x = beta1)) +
-  geom_density(fill = "#3182bd", alpha = 0.6) +
-  xlim(xlim_rng) +
-  ylim(0, dens_max) +
-  labs(title = "Phase 1", x = expression(beta[1]), y = NULL) +
-  theme_minimal()
-
-p2 <- ggplot(data.frame(beta1 = betas_2), aes(x = beta1)) +
-  geom_density(fill = "#3182bd", alpha = 0.6) +
-  xlim(xlim_rng) +
-  ylim(0, dens_max) +
-  labs(title = "Phase 2", x = expression(beta[1]), y = NULL) +
-  theme_minimal()
-
-p3 <- ggplot(data.frame(beta1 = betas_3), aes(x = beta1)) +
-  geom_density(fill = "#3182bd", alpha = 0.6) +
-  xlim(xlim_rng) +
-  ylim(0, dens_max) +
-  labs(title = "Phase 3", x = expression(beta[1]), y = NULL) +
-  theme_minimal()
-```
-
-```{r}
-# Mostrar los tres gráficos en una fila
-grid.arrange(p1, p2, p3, nrow = 1)
-
-```
-
-
-```{r}
-# Número de simulaciones a graficar (100 lineas a posteriori)
-nlines <- 100
-```
-
-
-```{r}
-# Extraer nlines muestras aleatorias de las cadenas para cada modelo
-set.seed(84735)
-draws1 <- as.data.frame(my_model_1)[sample(1:nrow(as.data.frame(my_model_1)), nlines), ]
-draws2 <- as.data.frame(my_model_2)[sample(1:nrow(as.data.frame(my_model_2)), nlines), ]
-draws3 <- as.data.frame(my_model_3)[sample(1:nrow(as.data.frame(my_model_3)), nlines), ]
-```
-
-```{r}
-# Función para construir las líneas simuladas posterior median para cada fase
-make_phase_plot <- function(phase_dat, draws, title) {
-  # Calcular la mediana de los parámetros
-  intercept_med <- median(draws$`(Intercept)`)
-  slope_med <- median(draws$temp_feel)
-  
-  ggplot(phase_dat, aes(x = temp_feel, y = rides)) +
-    geom_point(size = 1) +
-    # 100 líneas simuladas de la posterior
-    geom_abline(aes(intercept = `(Intercept)`, slope = temp_feel),
-                data = draws, color = "#2171b5", alpha = 0.2, size = 0.7) +
-    # Línea azul: regresión posterior mediana
-    geom_abline(intercept = intercept_med, slope = slope_med,
-                color = "#2171b5", size = 1.2) +
-    labs(title = title, x = "temp_feel", y = "rides") +
-    coord_cartesian(xlim = c(40, 90), ylim = c(0, 7000)) +
-    theme_minimal()
-}
-
-p1 <- make_phase_plot(phase_1, draws1, "Phase 1")
-p2 <- make_phase_plot(phase_2, draws2, "Phase 2")
-p3 <- make_phase_plot(phase_3, draws3, "Phase 3")
-
-grid.arrange(p1, p2, p3, nrow = 1)
-```
-
+Explorar las distribuciones a priori que usa rstanarm: Con prior_summary() podés revisar sus parámetros antes de ajustarlo.
 
 ```{r}
 # Empleo de las distribuciones a priori ajustadas propuestas por rstanarm
@@ -352,14 +216,16 @@ bike_model_default <- stan_glm(
 
 prior_summary(bike_model_default)
 ```
-
-
+Simula sin usar datos:
+bike_default_priors “simulá resultados posibles solo con la información de las priors, sin usar datos observados”.
 ```{r}
 # Simular a partir de los priors
 bike_default_priors <- update(bike_model_default, prior_PD = TRUE)
 
 ```
 
+Muestra cómo el modelo “imagina” que se vería la relación entre temperatura y viajes antes de ver los datos reales.
+Debería aparecer un abanico de líneas muy disperso, reflejando una creencia muy vaga.
 
 ```{r}
 # 200 líneas simuladas del modelo con las priori
@@ -368,6 +234,8 @@ add_epred_draws(object = bike_default_priors, ndraws = 200) %>%
   ggplot(aes(x = temp_feel, y = rides)) +
   geom_line(aes(y = .epred, group = .draw), alpha = 0.15)
 ```
+
+Después, simulás 4 datasets completos generados únicamente desde las priors, es coherente y logico que sean tan diferentes. 
 
 ```{r}
 # 4 conjuntos de datos simulados usando únicamente las priori
@@ -379,6 +247,19 @@ bikes %>%
   facet_wrap(~ .draw)
 
 ```
+
+Toma una muestra posterior concreta de parámetros, calcula la media esperada y genera valores simulados ysim de viajes (simulated_rides) bajo ese modelo.
+
+Luego compara la distribución simulada con la distribución real de los datos (rides).
+
+El gráfico tiene dos curvas:
+
+Celeste (lightblue) → distribución de viajes simulados por el modelo.
+
+Azul oscuro (darkblue) → distribución real de viajes observados.
+
+Si las curvas se parecen, significa que el modelo representa bien la variabilidad real de los datos (buena calibración).
+Si difieren mucho, el modelo probablemente viola algún supuesto (por ejemplo, error normal, varianza constante, etc.).
 
 
 ```{r}
@@ -402,13 +283,20 @@ ggplot(one_simulation, aes(x = simulated_rides)) +
   geom_density(aes(x = rides), color = "darkblue")
 ```
 
+Esta función automatiza lo anterior: genera 50 conjuntos simulados de datos (yrep) a partir del modelo posterior y los compara con los datos reales.
+Es una validación visual global del modelo:
 ```{r}
 # Se examinan 50 de las 20000 muestras simuladas
 pp_check(bike_model, nreps = 50) + 
   xlab("rides")
 ```
+Extrae un día concreto del dataset —por ejemplo, el 22 de octubre de 2012— para usarlo como caso de validación individual.
 
+Podés usar esa observación puntual para:
 
+Compararla con las predicciones posteriores del modelo.
+
+Evaluar si el número real de viajes (6 228) se encuentra dentro del intervalo predictivo posterior generado para un día de 75 °F.
 ```{r}
 ## Resúmenes predictivos a posteriori
 bikes %>% 
@@ -418,6 +306,8 @@ bikes %>%
 # 1     75.46  6228
 ```
 
+Generás 20 000 simulaciones de viajes para un día de 75 °F, integrando la incertidumbre de los parámetros
+
 ```{r}
 # Simular el modelo predictivo a posteriori
 set.seed(84735)
@@ -426,6 +316,7 @@ predict_75 <- bike_model_df %>%
          y_new = rnorm(20000, mean = mu, sd = sigma))
 ```
 
+Buscás la densidad en el punto donde el valor observado fue 6228 viajes (22 oct 2012).
 
 ```{r}
 # Calcular densidad explícitamente
@@ -434,8 +325,7 @@ dens <- density(predict_75$y_new)
 # Si 6228 no está exactamente en x, se interpola:
 yline <- approx(x = dens$x, y = dens$y, xout = 6228)$y
 ```
-
-
+Basicamente estoy viendo que tan probable era obtener ese valor que observe para un dia x, comparandolo contra la simulación de 20.000 casos. 
 ```{r}
 # Graficar el modelo predictivo a posteriori
 ggplot(predict_75, aes(x = y_new)) +
@@ -445,7 +335,6 @@ ggplot(predict_75, aes(x = y_new)) +
            color = "#2171b5", size = 1.1) +
   labs(x = expression(y[new]), y = "Densidad")
 ```
-
 
 ```{r}
 predict_75 %>% 
@@ -464,6 +353,21 @@ predict_75 %>%
             upper_50 = quantile(y_new, 0.75),
             upper_95 = quantile(y_new, 0.975))
 ```
+Como 6228 el valor que elegimos cae dentro delos intervalos no es tan extremo.
+
+
+## Verificacion predictiva por intervalos
+Esto genera 20000 × 500 predicciones (todas las observaciones, todos los draws).
+ppc_intervals() grafica bandas de intervalo:
+
+Bandas más oscuras: intervalo del 50 % (zona más probable).
+
+Bandas claras: intervalo del 95 %.
+
+Puntos negros: datos reales.
+
+Si los puntos caen dentro de las bandas, el modelo predice bien para ese rango de temperaturas.
+Si muchos puntos quedan fuera, hay sesgo o mala calibración.
 
 ```{r}
 set.seed(84735)
@@ -473,9 +377,11 @@ dim(predictions)
 
 ppc_intervals(bikes$rides, yrep = predictions, x = bikes$temp_feel, prob = 0.5, prob_outer = 0.95)
 ```
-
+### Validacion con una muestra de 75 días
+Esto repite el análisis anterior, pero con un subconjunto aleatorio de 25 días para ver más claramente cómo se comparan las predicciones con los valores reales.
+Es útil para visualizar la dispersión individual sin saturar el gráfico.
 ```{r}
-et.seed(84735)
+set.seed(84735)
 # Seleccionar muestra aleatoria de 25 días
 bikes_25 <- bikes %>% sample_n(25)
 
@@ -497,7 +403,12 @@ ppc_intervals(
 )
 ```
 
-
+Metricas de resumen: 
+Métrica	Significado
+MAE	Error absoluto medio (cuántos viajes, en promedio, difiere el modelo de la realidad).
+mae_scaled	MAE escalado (relativo al rango o desviación típica).
+within_50	Proporción de observaciones dentro del intervalo del 50 %.
+within_95	Proporción dentro del 95 %.
 ```{r}
 # Resúmenes predictivos posteriores
 set.seed(84735)
@@ -506,6 +417,14 @@ prediction_summary(bike_model, data = bikes)
 # 1 989.7     0.7712     0.438     0.968
 ```
 
+
+### Validacion cruzada:
+
+Esto divide los datos en 10 grupos, entrena el modelo 10 veces y evalúa la capacidad predictiva fuera de muestra.
+
+El MAE promedio entre pliegues es ≈ 1 029 viajes, muy similar al del conjunto completo → el modelo generaliza bien.
+
+La cobertura del 95 % se mantiene ≈ 0.97 → buena calibración.
 ```{r}
 set.seed(84735)
 cv_procedure <- prediction_summary_cv(
@@ -525,6 +444,16 @@ cv_procedure$folds
 cv_procedure$cv
 #     mae mae_scaled within_50 within_95
 # 1 1029     0.8015      0.42     0.968
+```
+
+LOO (Leave-One-Out Cross-Validation)
+
+Parámetro	Significado
+elpd_loo	Expected log predictive density: medida global de ajuste predictivo (más alto es mejor).
+p_loo	Complejidad efectiva del modelo (número efectivo de parámetros).
+looic	Criterio de información LOO (más bajo es mejor).
+→ Es un modelo simple (≈2.5 parámetros efectivos) con ajuste adecuado; no hay evidencia de sobreajuste.
+```{r}
 # Resúmenes predictivos posteriores para los datos originales
 set.seed(84735)
 prediction_summary(bike_model, data = bikes)
@@ -537,17 +466,3 @@ model_elpd$estimates
 #p_loo         2.5  0.1638
 #looic      8578.1 26.2371
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-

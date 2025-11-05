@@ -1,0 +1,44 @@
+---
+title: "Tarea 8"
+author: "Santiago Robatto y Sofia Terra"
+format: pdf
+editor: visual
+---
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+#Cargar paquetes
+library(bayesrules)
+library(tidyverse)
+library(rstan)
+library(bayesplot)
+library(broom.mixed)
+library(janitor)
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(gridExtra)
+library(patchwork)
+library(posterior)
+
+theme_set(
+  theme_minimal() +
+    theme(
+      plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+      axis.title = element_text(size = 10),
+      axis.text = element_text(size = 10)
+    )
+)
+```
+
+## Ejercicio 9.9 Bayes Rules!
+
+Prior understanding of this relationship:
+
+-   On an *average* humidity day, there are typically around 5000 riders, though this average could be somewhere between 1000 and 9000.
+
+-   Ridership tends to decrease as humidity increases. Specifically, for every one percentage point increase in humidity level, ridership tends to decrease by 10 rides, though this average decrease could be anywhere between 0 and 20.
+
+-   Ridership is only weakly related to humidity. At any given humidity, ridership will tend to vary with a large standard deviation of 2000 rides.
+
+
