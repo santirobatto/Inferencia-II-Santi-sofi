@@ -3,6 +3,14 @@ title: "Tarea 8"
 author: "Santiago Robatto y Sofia Terra"
 format: pdf
 editor: visual
+#Cargamos configuración predeterminada para los chunks del documento. 
+execute: 
+  echo: false       
+  warning: false    
+  message: false    
+  fig-width: 4 # ancho en pulgadas
+  fig-height: 2   # alto en pulgadas
+  fig-align: center
 ---
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
@@ -10,6 +18,7 @@ editor: visual
 library(bayesrules)
 library(tidyverse)
 library(rstan)
+library(rstanarm)
 library(bayesplot)
 library(broom.mixed)
 library(janitor)
@@ -33,6 +42,7 @@ theme_set(
 
 ## Ejercicio 9.9 Bayes Rules!
 
+Exercise 9.9 (How humid is too humid: model building) Throughout this chapter, we explored how bike ridership fluctuates with temperature. But what about humidity? In the next exercises, you will explore the Normal regression model of rides (Y) by humidity (X) using the bikes dataset. Based on past bikeshare analyses, suppose we have the following prior understanding of this relationship:
 Prior understanding of this relationship:
 
 -   On an *average* humidity day, there are typically around 5000 riders, though this average could be somewhere between 1000 and 9000.
@@ -41,4 +51,188 @@ Prior understanding of this relationship:
 
 -   Ridership is only weakly related to humidity. At any given humidity, ridership will tend to vary with a large standard deviation of 2000 rides.
 
+
+En primer lugar, procederemos a entender quién es cada una de las variables del modelo de regresión normal simple para este ejercicio.
+
+Recordemos que el modelo definido en el libro es:
+
+$$Y_i = \beta_0 \ + \beta_1X_i \ + \epsilon_i$$
+Por ende, tenemos:
+
+\begin{itemize}
+\item $Y$: Es la variable de respuesta, es decir, la que buscamos modelar. Al igual que en todo el capitulo 9 del libro, la variable de respuesta es la cantidad de viajes realizados por bicicletas en un dia. 
+\item $X$: Es la variable explicativa, la cual sera utilizada para intentar explicar $Y$. En este caso dejaremos de tomar la temperatura como variable explicativa y comenzaremos a usar la humedad. A simple intuicion, lo logico es pensar que esta nueva variable tendra un comportamiento decreciente, es decir que a mayor humedad menor cantidad de viajes y viceversa. Ademas, personalmente pensamos que es probable que sea menos fuerte o explicativa que la variable utilizada anteriormente,
+\item $\beta_0$: Se le denomina coeficiente de intercepto. Esto seria, el valor esperado de viajes cuando la humedad vale 0% (ordenada en el origen). Pero, tal como indica el libro en la definicion del modelo al comienzo del capitulo 9, dado que no es coherente fisicamente hablando tener 0% de humedad, el modelo permite centrar su valor para un dia promedio de humedad. 
+\item $\beta_1$: Matematicamente hablando es la pendiente de la recta. Es decir,en este contexto representa como cambia la cantidad de viajes en funcion de los cambios de la humedad. 
+\item $\epsilon$: Representa el error del modelo. Para ello, asumiremos que distribuye  normal, con $\mu$=0 y varianza $\sigma^2$.  Seremos  nosotros quienes simularemos $\sigma$ con un modelo exponencial.
+\end {itemize}
+
+
+En resumen:
+$$
+\epsilon_i \sim \text{Normal}(0, \sigma) 
+\\
+\sigma \sim \text{Exponential}(\lambda)
+$$
+De esta manera, para ajustar el modelo debemos trabajar sobre tres parametros: $\beta_0$, $\beta_1$ y $\sigma$. 
+
+**Ridership tends to decrease as humidity increases. Specifically, for every one percentage point increase in humidity level, ridership tends to decrease by 10 rides, though this average decrease could be anywhere between 0 and 20** $\longrightarrow$ Nos habla de como varia la cantidad de viajes ante cambios en la humedad, por ende con dicha informacion podemos definir $\beta_1$. Confirma nuestra teoria inicial de que la relacion es decreciente, y a su vez se observa que es un valor bastente disperso entorno al centro, es decir que hay alta variabilidad, y por ende la correlacion no sera sumamente marcada. 
+
+Para definir una varianza coherente en el modelo, utilizaremos la siguiente "regla" del modelo normal:
+
+El $\text{IC}_{95\%}$ de la normal coincide aproximademente con $\mu \pm$ 2 desviaciones estandar. De manera que:
+
+$$\text{Rango plausible}_{95\%} \approx \mu \pm 2\sigma$$
+Por ende, despejando, $\sigma$=5. Es decir que definiremos $\beta_1 \sim \text{Normal}(-10, 5)$ 
+
+Podemos comprobar si nuestra manera de definir $\beta_1$ fue adecuada al texto usando los cuantiles 2.5% y 97.5% de la normmal.
+
+```{r}
+
+kable(
+  data.frame(
+    Cuantil = c("2.5%", "97.5%"),
+    Valor = round(qnorm(c(0.025, 0.975), mean = -10, sd = 5), 2)
+  )
+)
+
+```
+
+De esta manera nos aseguramos estar modelando como nos indica el texto $\beta_1$.
+
+**On an average humidity day, there are typically around 5000 riders, though this average could be somewhere between 1000 and 9000.** $\longrightarrow$ Nos da informacion sobre $\beta_0$, mas precisamente es exactamente lo que comentamos anteriormente, nos da la cantidad de viajes para un dia promeido de humedad. 
+
+La definiremos con el modelo normal, centrada entorno a 5000. Para la varianza, tomaremos el mismo criterio que en el punto anterior, de modo que $\sigma$=2000:
+$\beta_0 \sim \text{Normal}(5.000, 2.000)$ 
+
+Verificamos el IC 95%:
+
+```{r}
+
+kable(
+  data.frame(
+    Cuantil = c("2.5%", "97.5%"),
+    Valor = round(qnorm(c(0.025, 0.975), mean = 5000, sd = 2000), 2)
+  )
+)
+
+```
+
+
+**Ridership is only weakly related to humidity. At any given humidity, ridership will tend to vary with a large standard deviation of 2000 rides.** $\longrightarrow$ nos habla sobre el error, que sera representado, tal como se realiza en el libro, primero mediante el modelo exponencial para definir $\sigma$ y luego con el modelo normal. 
+
+En el modelo exponencial, el inverso del parametro es igual a la media y a la varianza, por lo que, dado que nuestra varianza es 2000 (dato letra), tomaremos $\sigma=\frac{1}{2000}$
+
+Al graficar los datos de viajes en función de la humedad, se observa una nube de puntos bastante dispersa, sin una relación lineal fuerte (tal como esperabamo). 
+
+Aun así, la recta de tendencia ajustada muestra una leve pendiente negativa, lo que sugiere que, en promedio, a medida que aumenta la humedad, la cantidad de viajes tiende a disminuir ligeramente. Por otra parte, la gran dispersión de  puntos confirma que la humedad explica solo una pequeña parte de la variabilidad en los viajes, coherente con la idea de que la relación es débil.
+
+```{r}
+data(bikes)
+ggplot(bikes, aes(x = humidity, y = rides)) + 
+  geom_point(size = 0.5) + 
+  geom_smooth(method = "lm", se = TRUE)
+```
+
+Juntando toda esta informacion, ya estamos en condiciones de definir el modelo. Utilizaremos para ello la funcion stan_glm, del paquete rstanarm, la cual, de manera muy resumida, lo que hace es, de forma bayesiana, combina los priors con los datos para simular la distribución posterior de los parámetros mediante MCMC.
+
+Una manera estandar de definir el modelo es la siguiente:
+
+```{r, echo=TRUE, results='hide'}
+
+bike_model_hum<- stan_glm(rides ~ humidity,  #Rides en funcion de la humedad 
+                       data = bikes, #Dataset
+                       family = gaussian, #Asumir errores bajo modelo normal
+                       prior_intercept = normal(5000, 2000), #Definicion del intercepto
+                       prior = normal(-10, 5),  #Definicion de B1
+                       prior_aux = exponential(1/2000), #Defnicion de sigma (para el error)
+                       chains = 5, # Cant. cadenas
+                       iter = 8000*2, #Iteraciones por cadena
+                       seed = 84735) #Semilla
+```
+
+Definida la base del modelo, procederemos a correrlo pero solo a partir de los priors, es decir, sin observar la data observada. Para ello, utilizaremos la funcion update combinada con el argumento prior_pd=TRUE, de manera de asegurarnos de que Stan ignore los datos observados y que genere valores simulados usando solo los priors.
+
+Ajustamos y corremos el modelo:
+
+```{r, echo=TRUE, results='hide'}
+bike_model_prior <- update(bike_model_hum, prior_PD = TRUE)
+```
+
+# DIOS QUE CHOTO EL P2. ARREGLARLO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+```{r}
+p1 <- bikes %>%
+  add_fitted_draws(bike_model_prior, n = 100) %>%
+  ggplot(aes(x = humidity, y = rides)) +
+  geom_line(aes(y = .value, group = .draw), alpha = 0.35) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  annotate("text", x = 0, y = 9000, label = "Humedad = 0%", 
+           color = "red", hjust = 0, vjust = 1, size = 3) +
+  theme_minimal()+
+  scale_y_continuous(breaks = seq(1000, 10000, by = 1000))
+
+# 4 prior simulated datasets
+set.seed(3)
+p2 <- bikes %>%
+  add_predicted_draws(bike_model_prior, n = 5) %>%
+  ggplot(aes(x = humidity, y = .prediction)) +
+  geom_point(alpha = 0.4, shape = 16, color = "#1f77b4", size = 1.5) +
+  facet_wrap(~ .draw, ncol = 2, scales = "fixed") +
+  labs(x = "Humedad (%)", y = "Rides simulados") +
+  theme_minimal(base_size = 12) +
+  theme(
+    strip.text = element_text(face = "bold", size = 11),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  ) +
+  scale_y_continuous(breaks = seq(0, 9000, by = 2000))+ 
+  scale_x_continuous(breaks = seq(0, 100, by=0.25))
+)
+                    
+
+p2 <- bikes %>%
+  add_predicted_draws(bike_model_prior, n = 5) %>%
+  ggplot(aes(x = humidity, y = .prediction)) +
+  geom_point(alpha = 0.4, shape = 16, color = "#1f77b4", size = 1.5) +
+  facet_wrap(~ .draw, ncol = 2, scales = "fixed") +  # <- este es el cambio importante
+  labs(x = "Humedad (%)", y = "Rides simulados") +
+  theme_minimal(base_size = 12) +
+  theme(
+    strip.text = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  ) +
+  scale_y_continuous(breaks = seq(0, 9000, by = 2000)) +
+  scale_x_continuous(breaks = seq(0, 100, by = 10))
+
+(p1 | p2) + plot_layout(widths = c(1, 1.6))
+```
+
+El grafico de la izquierda muestra las 100 combinaciones aleatorias del prior ($\beta_0$ y $\beta_1$) y genera 100 lineas a partir de esos valores tomados de manera aleatoria, donde cada línea es una versión posible de la relación entre humedad y viajes (según nuestros priors).
+
+Claramente se observa que la relacion es negativa. Las pendientes de las lineas tienden a ser  parecidas entre si, lo que nos hace pensar que tenemos cierta informacion consistente sobre como es la relacion entre humedad y viajes. Esto confirma que, a priori, esperamos que la humedad tenga un efecto levemente negativo sobre la cantidad de viajes.
+
+Por otro lado, la ordenada en el origen es sumamente variable, oscilando entre 3000 y 9000 la mayoria de puntos de corte. Esto es, en un día promedio de humedad, suele haber entre unas 3000 y 9000 personas, pero podría variar bastante, con valores extremos menores a 1.000 y mayores a 10.000.
+
+
+ 
+
+ 
+
+
+
+
+  
+
+
+
+
+
+
+
+Fuentes utilizadas:
+
+https://www.scribbr.com/methodology/explanatory-and-response-variables/
+https://rpubs.com/cristina_gil/regresion_lineal_simple
 

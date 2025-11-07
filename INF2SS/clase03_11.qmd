@@ -109,20 +109,23 @@ Bike model df es el dataframe obtenido con los valores simulados via stan. cada 
 first_set <- head(bike_model_df, 1)
 first_set
 ```
-Por ejemplo acá tomo el primer conjunto de parametros y hallo la  media esperada
+
+Por ejemplo acá tomo el primer conjunto de parametros y hallo la media esperada
+
 ```{r}
 mu <- first_set$`(Intercept)` + first_set$temp_feel * 75
 mu
 ```
 
-Luego, para representar que no todos los das son de mu viajes, hago un muestreo aleatorio con la distribucion normal, obteniendo un nuevo "dato". 
+Luego, para representar que no todos los das son de mu viajes, hago un muestreo aleatorio con la distribucion normal, obteniendo un nuevo "dato".
+
 ```{r}
 set.seed(84735)
 y_new <- rnorm(1, mean = mu, sd = first_set$sigma)
 y_new
 ```
 
-Teniendo en cuenta los valores de bikemodeldf, calculo 20.000 valores de mu y simulo 20.000 valores de ynew. 
+Teniendo en cuenta los valores de bikemodeldf, calculo 20.000 valores de mu y simulo 20.000 valores de ynew.
 
 ```{r}
 # Predecir viajes para cada conjunto de parámetros de la cadena
@@ -133,7 +136,9 @@ predict_75 <- bike_model_df %>%
 
 head(predict_75, 3)
 ```
-Con eso construyo los intervalos de confianza de mu y de yneq 
+
+Con eso construyo los intervalos de confianza de mu y de yneq
+
 ```{r}
 # Construir:
 # intervalos de credibilidad para el número típico de viajes en bicicleta en un día de 75°F
@@ -147,15 +152,16 @@ predict_75 %>%
 # 1 3842.508 4093.436  1492.104  6488.281
 ```
 
-El primer gráfico (mu) muestra cómo varía la media esperada del número de viajes entre los distintos escenarios del modelo.
-Suele ser una curva más estrecha y concentrada (porque la media es bastante estable)
+El primer gráfico (mu) muestra cómo varía la media esperada del número de viajes entre los distintos escenarios del modelo. Suele ser una curva más estrecha y concentrada (porque la media es bastante estable)
+
 ```{r}
 # Graficar el modelo posterior de viajes típicos para 75°F
 ggplot(predict_75, aes(x = mu)) + 
   geom_density()
 ```
-El segundo gráfico (y_new) muestra cómo varían las predicciones reales simuladas.
-Esta curva es más ancha y dispersa, porque incluye la variabilidad de los datos reales además de la de los parámetros.
+
+El segundo gráfico (y_new) muestra cómo varían las predicciones reales simuladas. Esta curva es más ancha y dispersa, porque incluye la variabilidad de los datos reales además de la de los parámetros.
+
 ```{r}
 # Graficar el modelo predictivo posterior de viajes para mañana
 ggplot(predict_75, aes(x = y_new)) + 
@@ -187,19 +193,14 @@ p2 <- ggplot(predict_75, aes(x = y_new)) +
 
 ```
 
+El gráfico combinado (grid.arrange(p1, p2)) te permite ver la diferencia entre: la incertidumbre del modelo (mu), y la incertidumbre del fenómeno real (y_new).
 
-El gráfico combinado (grid.arrange(p1, p2)) te permite ver la diferencia entre:
-la incertidumbre del modelo (mu), y la incertidumbre del fenómeno real (y_new).
-
-En general: Posterior de mu: mide lo que el modelo “cree” sobre el promedio de viajes.
-Posterior predictiva de ynew: mide lo que el modelo espera observar en la práctica un día cualquiera con 75 °F.
-
+En general: Posterior de mu: mide lo que el modelo "cree" sobre el promedio de viajes. Posterior predictiva de ynew: mide lo que el modelo espera observar en la práctica un día cualquiera con 75 °F.
 
 ```{r}
 # Comparación dos gráfico modelos a posteriori
 grid.arrange(p1, p2, nrow = 1)
-```       
-
+```
 
 Explorar las distribuciones a priori que usa rstanarm: Con prior_summary() podés revisar sus parámetros antes de ajustarlo.
 
@@ -216,16 +217,16 @@ bike_model_default <- stan_glm(
 
 prior_summary(bike_model_default)
 ```
-Simula sin usar datos:
-bike_default_priors “simulá resultados posibles solo con la información de las priors, sin usar datos observados”.
+
+Simula sin usar datos: bike_default_priors "simulá resultados posibles solo con la información de las priors, sin usar datos observados".
+
 ```{r}
 # Simular a partir de los priors
 bike_default_priors <- update(bike_model_default, prior_PD = TRUE)
 
 ```
 
-Muestra cómo el modelo “imagina” que se vería la relación entre temperatura y viajes antes de ver los datos reales.
-Debería aparecer un abanico de líneas muy disperso, reflejando una creencia muy vaga.
+Muestra cómo el modelo "imagina" que se vería la relación entre temperatura y viajes antes de ver los datos reales. Debería aparecer un abanico de líneas muy disperso, reflejando una creencia muy vaga.
 
 ```{r}
 # 200 líneas simuladas del modelo con las priori
@@ -235,7 +236,7 @@ add_epred_draws(object = bike_default_priors, ndraws = 200) %>%
   geom_line(aes(y = .epred, group = .draw), alpha = 0.15)
 ```
 
-Después, simulás 4 datasets completos generados únicamente desde las priors, es coherente y logico que sean tan diferentes. 
+Después, simulás 4 datasets completos generados únicamente desde las priors, es coherente y logico que sean tan diferentes.
 
 ```{r}
 # 4 conjuntos de datos simulados usando únicamente las priori
@@ -258,9 +259,7 @@ Celeste (lightblue) → distribución de viajes simulados por el modelo.
 
 Azul oscuro (darkblue) → distribución real de viajes observados.
 
-Si las curvas se parecen, significa que el modelo representa bien la variabilidad real de los datos (buena calibración).
-Si difieren mucho, el modelo probablemente viola algún supuesto (por ejemplo, error normal, varianza constante, etc.).
-
+Si las curvas se parecen, significa que el modelo representa bien la variabilidad real de los datos (buena calibración). Si difieren mucho, el modelo probablemente viola algún supuesto (por ejemplo, error normal, varianza constante, etc.).
 
 ```{r}
 ## Comprobación de los supuestos del modelo
@@ -283,20 +282,22 @@ ggplot(one_simulation, aes(x = simulated_rides)) +
   geom_density(aes(x = rides), color = "darkblue")
 ```
 
-Esta función automatiza lo anterior: genera 50 conjuntos simulados de datos (yrep) a partir del modelo posterior y los compara con los datos reales.
-Es una validación visual global del modelo:
+Esta función automatiza lo anterior: genera 50 conjuntos simulados de datos (yrep) a partir del modelo posterior y los compara con los datos reales. Es una validación visual global del modelo:
+
 ```{r}
 # Se examinan 50 de las 20000 muestras simuladas
 pp_check(bike_model, nreps = 50) + 
   xlab("rides")
 ```
-Extrae un día concreto del dataset —por ejemplo, el 22 de octubre de 2012— para usarlo como caso de validación individual.
+
+Extrae un día concreto del dataset ---por ejemplo, el 22 de octubre de 2012--- para usarlo como caso de validación individual.
 
 Podés usar esa observación puntual para:
 
 Compararla con las predicciones posteriores del modelo.
 
 Evaluar si el número real de viajes (6 228) se encuentra dentro del intervalo predictivo posterior generado para un día de 75 °F.
+
 ```{r}
 ## Resúmenes predictivos a posteriori
 bikes %>% 
@@ -325,7 +326,9 @@ dens <- density(predict_75$y_new)
 # Si 6228 no está exactamente en x, se interpola:
 yline <- approx(x = dens$x, y = dens$y, xout = 6228)$y
 ```
-Basicamente estoy viendo que tan probable era obtener ese valor que observe para un dia x, comparandolo contra la simulación de 20.000 casos. 
+
+Basicamente estoy viendo que tan probable era obtener ese valor que observe para un dia x, comparandolo contra la simulación de 20.000 casos.
+
 ```{r}
 # Graficar el modelo predictivo a posteriori
 ggplot(predict_75, aes(x = y_new)) +
@@ -353,12 +356,12 @@ predict_75 %>%
             upper_50 = quantile(y_new, 0.75),
             upper_95 = quantile(y_new, 0.975))
 ```
+
 Como 6228 el valor que elegimos cae dentro delos intervalos no es tan extremo.
 
-
 ## Verificacion predictiva por intervalos
-Esto genera 20000 × 500 predicciones (todas las observaciones, todos los draws).
-ppc_intervals() grafica bandas de intervalo:
+
+Esto genera 20000 × 500 predicciones (todas las observaciones, todos los draws). ppc_intervals() grafica bandas de intervalo:
 
 Bandas más oscuras: intervalo del 50 % (zona más probable).
 
@@ -366,8 +369,7 @@ Bandas claras: intervalo del 95 %.
 
 Puntos negros: datos reales.
 
-Si los puntos caen dentro de las bandas, el modelo predice bien para ese rango de temperaturas.
-Si muchos puntos quedan fuera, hay sesgo o mala calibración.
+Si los puntos caen dentro de las bandas, el modelo predice bien para ese rango de temperaturas. Si muchos puntos quedan fuera, hay sesgo o mala calibración.
 
 ```{r}
 set.seed(84735)
@@ -377,9 +379,11 @@ dim(predictions)
 
 ppc_intervals(bikes$rides, yrep = predictions, x = bikes$temp_feel, prob = 0.5, prob_outer = 0.95)
 ```
+
 ### Validacion con una muestra de 75 días
-Esto repite el análisis anterior, pero con un subconjunto aleatorio de 25 días para ver más claramente cómo se comparan las predicciones con los valores reales.
-Es útil para visualizar la dispersión individual sin saturar el gráfico.
+
+Esto repite el análisis anterior, pero con un subconjunto aleatorio de 25 días para ver más claramente cómo se comparan las predicciones con los valores reales. Es útil para visualizar la dispersión individual sin saturar el gráfico.
+
 ```{r}
 set.seed(84735)
 # Seleccionar muestra aleatoria de 25 días
@@ -403,12 +407,8 @@ ppc_intervals(
 )
 ```
 
-Metricas de resumen: 
-Métrica	Significado
-MAE	Error absoluto medio (cuántos viajes, en promedio, difiere el modelo de la realidad).
-mae_scaled	MAE escalado (relativo al rango o desviación típica).
-within_50	Proporción de observaciones dentro del intervalo del 50 %.
-within_95	Proporción dentro del 95 %.
+Metricas de resumen: Métrica Significado MAE Error absoluto medio (cuántos viajes, en promedio, difiere el modelo de la realidad). mae_scaled MAE escalado (relativo al rango o desviación típica). within_50 Proporción de observaciones dentro del intervalo del 50 %. within_95 Proporción dentro del 95 %.
+
 ```{r}
 # Resúmenes predictivos posteriores
 set.seed(84735)
@@ -417,7 +417,6 @@ prediction_summary(bike_model, data = bikes)
 # 1 989.7     0.7712     0.438     0.968
 ```
 
-
 ### Validacion cruzada:
 
 Esto divide los datos en 10 grupos, entrena el modelo 10 veces y evalúa la capacidad predictiva fuera de muestra.
@@ -425,6 +424,7 @@ Esto divide los datos en 10 grupos, entrena el modelo 10 veces y evalúa la capa
 El MAE promedio entre pliegues es ≈ 1 029 viajes, muy similar al del conjunto completo → el modelo generaliza bien.
 
 La cobertura del 95 % se mantiene ≈ 0.97 → buena calibración.
+
 ```{r}
 set.seed(84735)
 cv_procedure <- prediction_summary_cv(
@@ -448,11 +448,8 @@ cv_procedure$cv
 
 LOO (Leave-One-Out Cross-Validation)
 
-Parámetro	Significado
-elpd_loo	Expected log predictive density: medida global de ajuste predictivo (más alto es mejor).
-p_loo	Complejidad efectiva del modelo (número efectivo de parámetros).
-looic	Criterio de información LOO (más bajo es mejor).
-→ Es un modelo simple (≈2.5 parámetros efectivos) con ajuste adecuado; no hay evidencia de sobreajuste.
+Parámetro Significado elpd_loo Expected log predictive density: medida global de ajuste predictivo (más alto es mejor). p_loo Complejidad efectiva del modelo (número efectivo de parámetros). looic Criterio de información LOO (más bajo es mejor). → Es un modelo simple (≈2.5 parámetros efectivos) con ajuste adecuado; no hay evidencia de sobreajuste.
+
 ```{r}
 # Resúmenes predictivos posteriores para los datos originales
 set.seed(84735)
@@ -466,3 +463,133 @@ model_elpd$estimates
 #p_loo         2.5  0.1638
 #looic      8578.1 26.2371
 ```
+
+
+# How Wrong is the model
+
+```{r}
+# Ejemplo de mejora del desempeño de un modelo bayesiano de regresión lineal simple normal por medio de transformación de 
+rm(list=ls())
+
+# Cargar librerías necesarias
+library(rstanarm)
+library(bayesplot)
+library(ggplot2)
+
+# Número de observaciones
+n <- 100
+
+# Variable independiente
+x <- seq(-1, 1, length.out = n)
+
+# Parámetros del modelo
+b0 <- 0.5      # Intercepto
+b1 <- 2.0      # Pendiente
+sigma <- 0.35   # Desviación estándar del error
+
+mu <- b0 + b1 * x
+```
+
+
+```{r}
+set.seed(12345)
+# Simulación lognormal: Y = exp(N(mu, sigma^2))
+y <- exp(rnorm(n, mean = mu, sd = sigma))
+
+par(mfrow=c(1,1))
+# Gráfico de dispersión y ajuste por mínimos cuadrados de la recta de regresión
+plot(x, y, pch = 19, col = "black", 
+     xlab = "x", ylab = "y",
+     main = "Escala original (lognormal)")
+# Ajuste lineal en escala original
+abline(lm(y ~ x), col = "blue", lwd = 2)
+
+sim1 <- data.frame(y = y, x = x)
+```
+
+
+```{r}
+# Ajuste del modelo Bayesiano con stan_glm
+# usando las distribuciones a priori débilmente informativas por defecto de rstanarm
+#refresh=0 evita la salida del codigo
+
+fit_stan <- stan_glm(y ~ x, 
+    data = sim1, 
+    family = gaussian,
+    chains = 4, 
+    iter = 5000 * 2,
+    seed = 84735,
+    refresh = 0)
+```
+
+
+```{r}
+# Resumen del modelo ajustado
+print(summary(fit_stan))
+```
+
+
+```{r}
+# Distribuciones a priori
+print(prior_summary(fit_stan))
+```
+
+
+```{r}
+# Posterior predictive check: comparación de densidades
+color_scheme_set("brightblue")
+
+pp_check(fit_stan, plotfun = "dens_overlay", nreps = 50) +
+  xlim(-13, 25) +
+  yaxis_text(size = 11) + # escala del eje y
+  yaxis_ticks() +  # marcas del eje y
+  xlab("y") +   # Etiqueta eje x
+  ylab("Densidad") +  # Etiqueta eje y
+  ggtitle("Posterior Predictive Check: y")  
+
+# Gráfico de dispersión con transformación logarítmica de la variable dependiente y ajuste por mínimos cuadrados de la recta de regresión
+plot(x, log(y), pch = 19, col = "black", 
+     xlab = "x", ylab = "log(y)",
+     main = "Escala logarítmica (normal)")
+abline(lm(log(y) ~ x), col = "blue", lwd = 2)
+```
+
+Uso un mdelo lognormal
+
+```{r}
+# Alternativa: modelo bayesiano para log(y)
+fit_stan_log <- stan_glm(log(y) ~ x, 
+     data = sim1, 
+     family = gaussian,
+     chains = 4, 
+     iter = 10000,
+     seed = 84735,
+     refresh = 0)
+
+# Posterior predictive check: comparación de densidades
+color_scheme_set("brightblue")
+```
+
+
+```{r}
+pp_check(fit_stan_log, plotfun = "dens_overlay", nreps = 50) +
+  xlim(-4, 5) +  # Expandir rango del eje x
+  yaxis_text(size = 11) + # escala del eje y
+  yaxis_ticks() +  # marcas del eje y
+  xlab("log(y)") +   # Etiqueta eje x
+  ylab("Densidad") +  # Etiqueta eje y
+  ggtitle("Posterior Predictive Check: log(y)")  
+
+pp_check(fit_stan_log, plotfun = "dens_overlay", nreps = 50)
+
+```
+
+
+
+
+
+
+
+
+
+
