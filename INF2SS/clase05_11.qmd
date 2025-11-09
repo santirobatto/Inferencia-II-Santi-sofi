@@ -1,0 +1,230 @@
+---
+title: "Untitled"
+format: pdf
+editor: visual
+---
+
+```{r}
+# Load some packages
+library(bayesrules)
+library(rstanarm)
+library(bayesplot)
+library(tidyverse)
+library(broom.mixed)
+library(tidybayes)
+
+# Load the data
+data(weather_WU)
+weather_WU %>% 
+  group_by(location) %>% 
+  tally()
+```
+Tenemos 100 mediciiones para cada una de las dos ciudades. 
+
+Seleccionamos solo alguans variables: 
+```{r}
+weather_WU <- weather_WU %>% 
+  select(location, windspeed9am, humidity9am, pressure9am, temp9am, temp3pm)
+```
+
+Se observa que hay cierta correlacion entre los dias. A menor temperatura de ma;ana menor temperatura de tarde. 
+
+Ademas se observan dos grupitos, uno corresponde a la costa y otro a la tierra.
+```{r}
+ggplot(weather_WU, aes(x = temp9am, y = temp3pm)) +
+  geom_point(size = 0.2)
+```
+
+Primero lo correremos sin diferenciar llas localidades
+```{r}
+weather_model_1 <- stan_glm(
+  temp3pm ~ temp9am, 
+  data = weather_WU, family = gaussian,
+  prior_intercept = normal(25, 5),
+  prior = normal(0, 2.5, autoscale = TRUE), 
+  prior_aux = exponential(1, autoscale = TRUE),
+  chains = 4, iter = 5000*2, seed = 84735)
+```
+
+
+```{r}
+# Prior specification
+prior_summary(weather_model_1)
+```
+
+
+```{r}
+# MCMC diagnostics
+mcmc_trace(weather_model_1, size = 0.1)
+mcmc_dens_overlay(weather_model_1)
+mcmc_acf(weather_model_1)
+neff_ratio(weather_model_1)
+rhat(weather_model_1)
+```
+```{r}
+# Posterior credible intervals
+posterior_interval(weather_model_1, prob = 0.80)
+```
+El ajiste no es bueno. A los autores no les gusta. 
+
+```{r}
+pp_check(weather_model_1)
+
+```
+
+
+Utilizaremos un predictor categorico: Para el deginiremos una variable auxiliar que vale 0 o 1 segun locacion. 
+
+```{r}
+ggplot(weather_WU, aes(x = temp3pm, fill = location)) + 
+  geom_density(alpha = 0.5)
+```
+
+
+
+```{r}
+weather_model_2 <- stan_glm(
+  temp3pm ~ location,
+  data = weather_WU, family = gaussian,
+  prior_intercept = normal(25, 5),
+  prior = normal(0, 2.5, autoscale = TRUE), 
+  prior_aux = exponential(1, autoscale = TRUE),
+  chains = 4, iter = 5000*2, seed = 84735)
+```
+```{r}
+# MCMC diagnostics
+mcmc_trace(weather_model_2, size = 0.1)
+mcmc_dens_overlay(weather_model_2)
+mcmc_acf(weather_model_2)
+```
+
+
+
+```{r}
+tidy(weather_model_2, effects = c("fixed", "aux"),
+     conf.int = TRUE, conf.level = 0.80) %>% 
+  select(-std.error)
+```
+Obtengo dos densidades distintas: 
+```{r}
+as.data.frame(weather_model_2) %>% 
+  mutate(uluru = `(Intercept)`, 
+         wollongong = `(Intercept)` + locationWollongong) %>% 
+  mcmc_areas(pars = c("uluru", "wollongong"))
+
+```
+
+### Utilizing dos predictors: 
+
+Si miro de 1 antes de hacer el modelo, ya deberia darme cuenta que voy a necesitar dos predictores.
+
+```{r}
+ggplot(weather_WU, aes(y = temp3pm, x = temp9am, color = location)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+```{r}
+weather_model_3_prior <- stan_glm(
+  temp3pm ~ temp9am + location,
+  data = weather_WU, family = gaussian, 
+  prior_intercept = normal(25, 5),
+  prior = normal(0, 2.5, autoscale = TRUE), 
+  prior_aux = exponential(1, autoscale = TRUE),
+  chains = 4, iter = 5000*2, seed = 84735,
+  prior_PD = TRUE)
+```
+
+El arugmento prior_pd = TRUE lo uq e hace es no construir el posterior aun. Osea solo hace el priori, y luego lo actualizamos. 
+
+```{r}
+set.seed(84735)
+weather_WU %>%
+  add_predicted_draws(weather_model_3_prior, n = 100) %>%
+  ggplot(aes(x = .prediction, group = .draw)) +
+    geom_density() + 
+    xlab("temp3pm")
+
+weather_WU %>%
+  add_fitted_draws(weather_model_3_prior, n = 100) %>%
+  ggplot(aes(x = temp9am, y = temp3pm, color = location)) +
+    geom_line(aes(y = .value, group = paste(location, .draw)))
+```
+Le dimos tanta incertidumbre que no sabemos que onda, no sirve de mucho por ahora. 
+
+Ahora le daremos un update usando la posteriori:
+
+Ahora entrenamos el modelo 
+```{r}
+weather_model_3 <- update(weather_model_3_prior, prior_PD = FALSE)
+```
+
+Resumen de 3
+```{r}
+head(as.data.frame(weather_model_3), 3)
+
+```
+
+```{r}
+weather_WU %>%
+  add_fitted_draws(weather_model_3, n = 100) %>%
+  ggplot(aes(x = temp9am, y = temp3pm, color = location)) +
+    geom_line(aes(y = .value, group = paste(location, .draw)), alpha = .1) +
+    geom_point(data = weather_WU, size = 0.1)
+```
+Por defecto te hace los graficos y te marca el IC 50%. 
+
+
+```{r}
+# Simulate a set of predictions
+set.seed(84735)
+temp3pm_prediction <- posterior_predict(
+  weather_model_3,
+  newdata = data.frame(temp9am = c(10, 10), 
+                       location = c("Uluru", "Wollongong")))
+
+# Plot the posterior predictive models
+mcmc_areas(temp3pm_prediction) +
+  ggplot2::scale_y_discrete(labels = c("Uluru", "Wollongong")) + 
+  xlab("temp3pm")
+```
+
+
+
+# Dreaming Bigger: mas de dos predictores. 
+Ajustaermos el modelo con 7 parametros. Ya no hay forma de visualizar, tenemos 8 var. 
+
+
+
+
+```{r}
+weather_model_4 <- stan_glm(
+  temp3pm ~ .,
+  data = weather_WU, family = gaussian, 
+  prior_intercept = normal(25, 5),
+  prior = normal(0, 2.5, autoscale = TRUE), 
+  prior_aux = exponential(1, autoscale = TRUE),
+  chains = 4, iter = 5000*2, seed = 84735)
+
+# Confirm prior specification
+prior_summary(weather_model_4)
+
+# Check MCMC diagnostics
+mcmc_trace(weather_model_4)
+mcmc_dens_overlay(weather_model_4)
+mcmc_acf(weather_model_4)
+```
+
+Cuales son las asociaciones significativas? Cuales de ellos son positivas hy negativas.
+
+Ahora tenemos 4 modelos que compiten para ver cual ajusta mejor. 
+
+
+
+
+
+
+
+
+
+
