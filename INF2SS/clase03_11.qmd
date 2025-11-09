@@ -475,7 +475,7 @@ ppc_intervals(bikes$rides, yrep = predictions, x = bikes$temp_feel, prob = 0.5, 
 ```
 
 ```{r}
-et.seed(84735)
+set.seed(84735)
 # Seleccionar muestra aleatoria de 25 días
 bikes_25 <- bikes %>% sample_n(25)
 
