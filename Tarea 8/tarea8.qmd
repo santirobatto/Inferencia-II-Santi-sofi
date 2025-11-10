@@ -418,12 +418,15 @@ En este ejercicio queremos analizar el número de viajes en bicicleta para un d�
 Primero empezamos simulando dos modelos posteriori: uno para el número típico de viajes en bicicleta en días con 90% de humedad y otro que sea un modelo predictivo para el número de viajes del día siguiente. Para hacer esto debemos comenzar extrayendo los datos del modelo a un data frame. 
 
 ```{r}
+#Guardamos los datos del modelo en un data frame
 dataframe_model <- as.data.frame(bike_model_hum)
 ```
 
 Ahora podemos hacer el modelo sobre la media ($\mu$) de viajes en un día con 90% de humedad. Debemos simular la regresión lineal con la ecuación $\mu = \beta_0 + \beta_1 \cdot 90$, que tiene en cuenta el dato conocido pero también la incertidumbre de los otros parámetros. Nos definimos el objeto viajes1_promedio_H90:
 
 ```{r}
+#aplicamos la formula de la regresion lineal teniendo en cuenta que
+#la humedad es 90%
 viajes1_promedio_H90 <- dataframe_model$`(Intercept)` + dataframe_model$humidity * 90
 
 viajes1_promedio_H90
@@ -434,19 +437,23 @@ Por otro lado debemos realizar el modelo sobre la incertidumbre de el siguiente 
 ```{r}
 set.seed(84735)
 
+#volvemos a aplicar la formula de la regresion lineal
 viajes2_promedio_H90 <- dataframe_model$`(Intercept)` + dataframe_model$humidity * 90
 
+#utilizamos la funcion rnorm
 y_new <- rnorm(n = nrow(dataframe_model), mean = viajes2_promedio_H90, sd = dataframe_model$sigma)
+
 y_new
 ```
 Tenemos entonces que el objeto viajes2_promedio_H90 representa un número plausible de viajes para un solo día con 90% de humedad. 
 
 Si graficamos ambos modelos obtenemos:
 ```{r}
+#guardamos las filas de datos, las muestras.
 n_muestras <- nrow(dataframe_model) 
 
 plot_data <- data.frame(
-  valor = c(promedio_viaj, y_new),
+  valor = c(viajes1_promedio_H90, y_new), #los dos modelos
   tipo_prediccion = c(
     rep("1. Media Típica (μ)", n_muestras),
     rep("2. Día de Mañana (y_new)", n_muestras)
@@ -460,7 +467,7 @@ ggplot(plot_data, aes(x = valor, fill = tipo_prediccion)) +
   labs(
     title = "Comparación de Incertidumbre: Media vs. Predicción",
     subtitle = "Para humidity = 90%",
-    x = "Número de Viajes (Ridership)",
+    x = "Número de Viajes",
     y = "Densidad Posterior",
     fill = "Tipo de Simulación"  
   ) +
@@ -479,13 +486,14 @@ Finalmente, nuestro objetivo es comprobar que lo anterior es correcto con la fun
 
 ```{r}
 #Nuevo dato que se quiere predecir
-new_data_point <- data.frame(humidity = 90)
+nuevodato <- data.frame(humidity = 90)
 
-#REVISAR
-predictions_shortcut <- posterior_predict(bike_model_hum, newdata = new_data_point)
+#Guardamos las predicciones de la funcion posterior predict
+#donde newdata=nuevodato
+prediccionesPOS1 <- posterior_predict(bike_model_hum, newdata = nuevodato)
 
 #IC 80%
-quantile(predictions_shortcut, probs = c(0.1, 0.9))
+quantile(prediccionesPOS1, probs = c(0.1, 0.9))
 ```
 Se observa que el intervalo obtenido es prácticamente igual al calculado de forma manual anteriormente. Por lo tano, la simulación se realizó correctamente. 
 
@@ -507,9 +515,12 @@ Esto puede parecer contrario a los que vimos en pp_check(). Sin embargo, como fu
 
 ```{r}
 set.seed(84735)
-predictions <- posterior_predict(bike_model_hum, newdata = bikes)
 
-ppc_intervals(bikes$rides, yrep = predictions, x = bikes$humidity, 
+#Guardamos las predicciones de la funcion posterior predict
+#donde newdata=bikes
+prediccionesPOS2 <- posterior_predict(bike_model_hum, newdata = bikes)
+
+ppc_intervals(bikes$rides, yrep = prediccionesPOS2, x = bikes$humidity, 
               prob = 0.5, prob_outer = 0.95)
 ```
 
