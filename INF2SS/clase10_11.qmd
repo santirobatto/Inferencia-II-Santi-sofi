@@ -1,0 +1,363 @@
+---
+title: "Clase 10-11"
+format: pdf
+editor: visual
+---
+
+# Analisis de un modelo - es el cod del cap11 -  PAso a paso 
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+#Cargar paquetes
+library(bayesrules)
+library(tidyverse)
+library(rstan)
+library(rstanarm)
+library(bayesplot)
+library(broom.mixed)
+library(janitor)
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(gridExtra)
+library(patchwork)
+library(posterior)
+library(tidybayes)
+
+theme_set(
+  theme_minimal() +
+    theme(
+      plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+      axis.title = element_text(size = 10),
+      axis.text = element_text(size = 10)
+    )
+)
+```
+
+
+Del 12 en adelante, como aplicar las tecnicas en otros modelos, donde no es compatible. Por ejemplo si tengo una binomial, como lo normalizo? 
+
+Para la pregunta 3 (How accurate are the pioserior predictive models), lo que hacemos es validación curzada. Con una parte de los datos ajusto el modelo y con otra porción de los datos pongo a prubeba si el modelo nos sirve para hacer predicciones. 
+
+Usarlo para el parcial (las 3 "vertientes de checkeo del modelo")
+
+Traer datos: 
+
+```{r}
+
+data(weather_WU)
+weather_WU %>% 
+  group_by(location) %>% 
+  tally()
+```
+
+
+Usams prioris poco informativos. para que el modelo sea orientado por laos datos. 
+
+```{r}
+weather_WU <- weather_WU %>% 
+  select(location, windspeed9am, humidity9am, pressure9am, temp9am, temp3pm)
+ggplot(weather_WU, aes(x = temp9am, y = temp3pm)) +
+  geom_point(size = 0.2)
+```
+
+Generar 20.000 valores de sigma para estiamr su distribución.
+
+A beta 1, es decir la pendiente, la centramos en 0 para que el modelo tenga libertad de positivos y negativos. El autoscale true o false lo que hace es ajustar o no los prioris. 
+
+
+
+```{r}
+weather_model_1 <- stan_glm(
+  temp3pm ~ temp9am, 
+  data = weather_WU, family = gaussian,
+  prior_intercept = normal(25, 5),
+  prior = normal(0, 2.5, autoscale = TRUE), 
+  prior_aux = exponential(1, autoscale = TRUE),
+  chains = 4, iter = 5000*2, seed = 84735)
+
+```
+
+Especificación del prior:
+
+Nos muestra los ajustes que hace en caso de usar autoscale TRUE. 
+Siempre hacerlo. 
+
+```{r}
+prior_summary(weather_model_1)
+```
+
+
+Diagnosticos de las cadenas_:
+```{r}
+# MCMC diagnostics
+mcmc_trace(weather_model_1, size = 0.1)
+mcmc_dens_overlay(weather_model_1)
+mcmc_acf(weather_model_1)
+neff_ratio(weather_model_1)
+rhat(weather_model_1)
+
+```
+
+
+Checkeo del posterior: R lo que hace es dejar el itnervalo centrado. 
+
+Con Beta 1 es muy positivo el intervalo. 
+
+```{r}
+posterior_interval(weather_model_1, prob = 0.80)
+```
+
+Comparar datos simulados vs reales:
+Se consideran 50 ternas simuladas, se simulan 200 valores y con eso se levantan las densidades, que se comparan contra la densidad de los datos
+
+```{r}
+pp_check(weather_model_1)
+
+```
+50 posterior simulated sets of temperature data (light blue) alongside the actual observed temperature data (dark blue).
+
+
+# Usar un predictor categorical
+
+Grafico separando por localidad: Nos da indicio que hay dos localidades con  patrones distintos. Entonces podría usar solamente la info de la localidad. 
+
+```{r}
+ggplot(weather_WU, aes(x = temp3pm, fill = location)) + 
+  geom_density(alpha = 0.5)
+```
+
+Cambiamos temp9am (la predictora) por location
+
+```{r}
+weather_model_2 <- stan_glm(
+  temp3pm ~ location,
+  data = weather_WU, family = gaussian,
+  prior_intercept = normal(25, 5),
+  prior = normal(0, 2.5, autoscale = TRUE), 
+  prior_aux = exponential(1, autoscale = TRUE),
+  chains = 4, iter = 5000*2, seed = 84735)
+
+```
+
+De esta manera, es un nuevo odelo: 
+
+El intercepto es Uluru, porque cuando hago summary, el punto dos dice locationwolongong. Es decir que esa es la bariable que vamos a modelar. 
+
+```{r}
+tidy(weather_model_2, effects = c("fixed", "aux"),
+     conf.int = TRUE, conf.level = 0.80) %>% 
+  select(-std.error)
+```
+
+Esto te tira la distribucion a posteriori para las dos locaciones 
+```{r}
+as.data.frame(weather_model_2) %>% 
+  mutate(uluru = `(Intercept)`, 
+         wollongong = `(Intercept)` + locationWollongong) %>% 
+  mcmc_areas(pars = c("uluru", "wollongong"))
+```
+
+
+# 2 Predictores (Lo más util) 11.2
+
+Ahora quiero estimar la temperatura a las 3 am en base a la temp de las 9am y la ubicación. 
+
+Graficar separando por categoria:  
+```{r}
+ggplot(weather_WU, aes(y = temp3pm, x = temp9am, color = location)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+Tengo dos objetivos. corro el modelo con las dos variables y ver qué tan poco sabía a priori. Para eso prior_pd= TRUE. Ahí solo uso  las prioris, no miro los datos. Es un modelo qu
+
+Con este codigo corro el modelo solo basado en los prioris, sirve para medir qué tanto se a priori. No miro datos. 
+Dsp la segunda parte lo que hace es simular 100 en base a ternas y dsp grafica. Basicamente veo que no se un culo. 
+
+```{r}
+weather_model_3_prior <- stan_glm(
+  temp3pm ~ temp9am + location,
+  data = weather_WU, family = gaussian, 
+  prior_intercept = normal(25, 5),
+  prior = normal(0, 2.5, autoscale = TRUE), 
+  prior_aux = exponential(1, autoscale = TRUE),
+  chains = 4, iter = 5000*2, seed = 84735,
+  prior_PD = TRUE)
+set.seed(84735)
+weather_WU %>%
+  add_predicted_draws(weather_model_3_prior, n = 100) %>%
+  ggplot(aes(x = .prediction, group = .draw)) +
+    geom_density() + 
+    xlab("temp3pm")
+
+weather_WU %>%
+  add_fitted_draws(weather_model_3_prior, n = 100) %>%
+  ggplot(aes(x = temp9am, y = temp3pm, color = location)) +
+    geom_line(aes(y = .value, group = paste(location, .draw)))
+```
+Ahora si. simulamos el posterior con datos: 
+```{r}
+weather_model_3 <- update(weather_model_3_prior, prior_PD = FALSE)
+
+```
+Graficar los posteriores: 
+
+```{r}
+weather_WU %>%
+  add_fitted_draws(weather_model_3, n = 100) %>%
+  ggplot(aes(x = temp9am, y = temp3pm, color = location)) +
+    geom_line(aes(y = .value, group = paste(location, .draw)), alpha = .1) +
+    geom_point(data = weather_WU, size = 0.1)
+```
+
+ESTÁ bueno esto para comparar en el parcial, tipo graficar lo que se a partir del priori solo vs lo que se cuando actualizo los datos. 
+
+Puedo calcular los IC del posterior: 
+```{r}
+posterior_interval(weather_model_3, prob = 0.80, 
+                   pars = c("temp9am", "locationWollongong"))
+```
+
+### Posterior predict on specific days
+Estoy incoporando nueva data: 
+
+```{r}
+set.seed(84735)
+temp3pm_prediction <- posterior_predict(
+  weather_model_3,
+  newdata = data.frame(temp9am = c(10, 10), 
+                       location = c("Uluru", "Wollongong")))
+
+# Plot the posterior predictive models
+mcmc_areas(temp3pm_prediction) +
+  ggplot2::scale_y_discrete(labels = c("Uluru", "Wollongong")) + 
+  xlab("temp3pm")
+```
+
+# Utilizando términos de interacción. 11.3
+
+Qué pasa si la variable se comporta distinto en los dos lados, osea qué pasa si la relación no es la misma. Ejemplo, una es creciente y la otra decreciente. 
+
+Es decir, que la variable location altera la relación entre gumedade y temp
+
+Lo miraremos con la humedad: 
+```{r}
+ggplot(weather_WU, aes(y = temp3pm, x = humidity9am, color = location)) +
+  geom_point(size = 0.5) + 
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+Vamos a poner la interacción en el modelo de esta manera surgen 5 parametros. Ingreso variables dammy que son booleanas, que funcionan como auxiliares. Lo que hacen es cambiar los términos que forman en ell modelo. 
+
+Modelo de interacción: Se programa con el término location:humidity9am
+
+
+```{r}
+interaction_model <- stan_glm(
+  temp3pm ~ location + humidity9am + location:humidity9am, 
+  data = weather_WU, family = gaussian,
+  prior_intercept = normal(25, 5),
+  prior = normal(0, 2.5, autoscale = TRUE), 
+  prior_aux = exponential(1, autoscale = TRUE),
+  chains = 4, iter = 5000*2, seed = 84735)
+```
+
+
+Mirar las cosas: tengo b0, b1, b2, b3, sigma
+```{r}
+tidy(interaction_model, effects = c("fixed", "aux"))
+```
+Posterior interval para ver el IC
+
+```{r}
+posterior_interval(interaction_model, prob = 0.80, 
+                   pars = "locationWollongong:humidity9am")
+```
+Graficar las regresiones
+```{r}
+weather_WU %>%
+  add_fitted_draws(interaction_model, n = 200) %>%
+  ggplot(aes(x = humidity9am, y = temp3pm, color = location)) +
+    geom_line(aes(y = .value, group = paste(location, .draw)), alpha = 0.1)
+```
+
+
+# Utilizanr mas de dos variables
+Conocer nombres de las var
+```{r}
+weather_WU %>% 
+  names()
+```
+
+```{r}
+weather_model_4 <- stan_glm(
+  temp3pm ~ .,
+  data = weather_WU, family = gaussian, 
+  prior_intercept = normal(25, 5),
+  prior = normal(0, 2.5, autoscale = TRUE), 
+  prior_aux = exponential(1, autoscale = TRUE),
+  chains = 4, iter = 5000*2, seed = 84735)
+
+# Confirm prior specification
+prior_summary(weather_model_4)
+
+# Check MCMC diagnostics
+mcmc_trace(weather_model_4)
+mcmc_dens_overlay(weather_model_4)
+mcmc_acf(weather_model_4)
+```
+
+
+Ver IC de los coeficientes del posterior: Sirve para ver el impacto sobre la variable de respuesta. En general las que tienden a 0 con IC parejos. Esos los elimino. 
+
+```{r}
+posterior_interval(weather_model_4, prob = 0.95)
+```
+
+Posterior predictive checks: Uso ppcheck cruzando todas las variables. 
+
+!Ojo que me salte algo de codigo aca
+
+Dsp de usar ppcheck,  puedo hacer lo siguiente para comparar todos los modelos. 
+
+```{r}
+ppc_intervals(weather_WU$temp3pm, yrep = predictions_1, 
+              x = weather_WU$temp9am, prob = 0.5, prob_outer = 0.95) + 
+  labs(x = "temp9am", y = "temp3pm")
+
+# Posterior predictive models for weather_model_2
+ppc_violin_grouped(weather_WU$temp3pm, yrep = predictions_2, 
+                   group = weather_WU$location, y_draw = "points") + 
+  labs(y = "temp3pm"
+```
+Graficar separado por ubicación: 
+```{r}
+ppc_intervals_grouped(weather_WU$temp3pm, yrep = predictions_3, 
+                      x = weather_WU$temp9am, group = weather_WU$location,
+                      prob = 0.5, prob_outer = 0.95,
+                      facet_args = list(scales = "fixed")) + 
+  labs(x = "temp9am", y = "temp3pm")
+```
+
+
+
+# Usar prediccion con validación cruzada para validar los modelos: 
+
+Esto lo que tiene es 10 folds. 
+
+```{r}
+prediction_summary_cv(model = weather_model_1, data = weather_WU, k = 10)
+
+```
+
+Hay 4 columnas y luego una última línea. Cada columna son metricas del desempeño dpredictivo. 
+
+los within son los iontervalos 50 y 95. 
+
+Divide en 10 grupos y cada grupo lo evalúa contra los otros 9.
+La línea del final hace la media. 
+
+
+
+

@@ -424,7 +424,7 @@ dataframe_model <- as.data.frame(bike_model_hum)
 
 Ahora podemos hacer el modelo sobre la media ($\mu$) de viajes en un día con 90% de humedad. Debemos simular la regresión lineal con la ecuación $\mu = \beta_0 + \beta_1 \cdot 90$, que tiene en cuenta el dato conocido pero también la incertidumbre de los otros parámetros. Nos definimos el objeto viajes1_promedio_H90:
 
-```{r}
+```{r, echo=FALSE,  message=FALSE}
 #aplicamos la formula de la regresion lineal teniendo en cuenta que
 #la humedad es 90%
 viajes1_promedio_H90 <- dataframe_model$`(Intercept)` + dataframe_model$humidity * 90
@@ -477,8 +477,8 @@ ggplot(plot_data, aes(x = valor, fill = tipo_prediccion)) +
 Se observa que ambas distribuciones están centradas en prácticamente el mismo valor, pero la dispersión del modelo que representa el día siguiente es mucho mayor que la del modelo de la media. La gráfica de la media muestra la incertidumbre del modelo, mientras que la gráfica del día siguiente muestra la incertidumbre sobre la predicción. Tiene en cuenta la incertidumbre del modelo y la de los datos también, por lo tanto, es más acertado que el modelo que predice un evento específco. Presenta una realidad más balanceada.
 
 Luego, nos interesa calcular el IC al 80% para el día siguiente, donde usamos el segundo modelo simulado. 
-```{r}
-quantile(y_new, probs = c(0.1, 0.9))
+```{r, echo=FALSE}
+  quantile(y_new, probs = c(0.1, 0.9))
 ```
 Por lo tanto, con un 80% de confianza sabemos que el número de viajes en bicicleta el día siguiente, sabiendo que hay un 90% de humedad, se encontrará en el intervalo [1247 ; 5284].
 
@@ -544,7 +544,7 @@ prediction_summary(bike_model_hum, data = bikes)
 
 \newpage
 
-### Fuentes utilizadas:
+# Fuentes utilizadas:
 
 https://www.scribbr.com/methodology/explanatory-and-response-variables/ https://rpubs.com/cristina_gil/regresion_lineal_simple
 
