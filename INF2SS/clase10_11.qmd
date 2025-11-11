@@ -360,4 +360,7 @@ La línea del final hace la media.
 
 
 
+La funcion loo:compare se sua para comparar modelos. 
 
+Sobreajuste sobre el modelo al usar demasiados predictores (se sesga). Al querer capturar detalles demasiados especificos pierdo el foco en la tendencia, 
+demasiada variabilidad al usar pocos. 
